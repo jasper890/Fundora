@@ -1,6 +1,6 @@
 # Verification and completion evidence
 
-Status: Task 1 local baseline evidence recorded; acceptance criteria A1-A10 remain incomplete. Historical upstream example results in the [repository report](../ProofPay_Repository_Validation.md) are not ProofPay test results. The [system plan](../ProofPay_System_and_Implementation_Plan.md) remains authoritative.
+Status: Task 1 local baseline evidence recorded; Task 2 contract work is in progress; acceptance criteria A1-A10 remain incomplete. Historical upstream example results in the [repository report](../ProofPay_Repository_Validation.md) are not ProofPay test results. The [system plan](../ProofPay_System_and_Implementation_Plan.md) remains authoritative.
 
 ## Task 1 implementation record — 16 November 2026
 
@@ -61,3 +61,17 @@ Manual wallet checks cover rejection, wrong account/network, explicit preview, k
 For each task record: commit or working snapshot, requirement IDs, environment/tool versions, exact command/manual procedure, date, exit/result, counts, evidence reference, limitations, and remaining failure. Status is PASSED, FAILED, BLOCKED, or NOT RUN. Store only sanitized screenshots and chain hashes; no passwords, real evidence, or signing material. A skipped check stays incomplete.
 
 Independent usability testers and customer interviews are separate evidence categories. No outside testers exist by assumption. A successful synthetic technical demo does not establish demand, grant eligibility, audit, or production readiness.
+
+## Task 2 initial red record - 16 November 2026
+
+Working snapshot: branch `implementation/task-2-award-contract`, following pushed OpenSpec checkpoint `483b199`. Tool versions: Rust/Cargo 1.99.1, Soroban SDK 28.0.0, Stellar CLI 28.1.0, target `wasm32v1-none`.
+
+| Check | Result | Evidence |
+|---|---|---|
+| `cargo fetch --manifest-path contracts/award/Cargo.toml --locked` | PASSED | Resolved the exact `soroban-sdk` 28.0.0 pin and generated the committed lockfile. |
+| `cargo test --manifest-path contracts/award/Cargo.toml --locked --no-run` | PASSED | All 24 native contract tests compile against the pinned SDK. |
+| `cargo test --manifest-path contracts/award/Cargo.toml --locked` | FAILED (expected initial red) | 24 tests compiled; 9 constructor/setup checks passed and 15 lifecycle checks failed because contract transition methods are deliberate `InvalidState` stubs. This records the pre-implementation red run, not final acceptance. |
+| `npx.cmd --yes @fission-ai/openspec@2.0.0 validate task-2-award-contract --strict` | PASSED | Proposal, award-contract scenarios, design, and tracked task list validated before test implementation; rerun after updates. |
+| `stellar network settings --network testnet --output json-formatted` | NOT RUN for compatibility evidence | The read-only response warned Testnet protocol 30 while Stellar CLI 28.1.0 supports protocol 28 and said the returned configuration may be incomplete. No TTL constants were selected from it, and no Testnet transaction was sent. |
+
+The native suite uses G-address account fixtures from `MuxedAddress::generate`, checks the constructor's recorded sponsor authorization, inspects successful account auth trees, and rejects calls with a specific wrong-signer mock. SDK 28's contract-registration test helper records constructor auth rather than testing its denial path; a signed deployment check is not attempted here. The mock token is test-only and does not prove live SAC behavior. Live Testnet compatibility and archive restoration remain later-phase gates.

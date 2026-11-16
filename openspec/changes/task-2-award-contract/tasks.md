@@ -2,8 +2,8 @@
 
 ## 1. Contract test harness and red invariants
 
-- [ ] 1.1 Add the `contracts/award` package pinned to `soroban-sdk = 28.0.0`, generate and commit its lockfile, and verify dependency resolution with `cargo test --manifest-path contracts/award/Cargo.toml --locked`.
-- [ ] 1.2 Add test-only token and specific-auth fixtures plus failing constructor, role, deadline-boundary, stale-version, duplicate-action, evidence-revision, hold, rotation, fixed-token/destination, refund, transfer-rollback, and missing-state tests; run the locked suite red and record expected failures in `docs/VERIFICATION.md`.
+- [x] 1.1 Add the `contracts/award` package pinned to `soroban-sdk = 28.0.0`, generate the lockfile, and verify resolution with `cargo fetch --manifest-path contracts/award/Cargo.toml --locked` plus test compilation with `cargo test --manifest-path contracts/award/Cargo.toml --locked --no-run`.
+- [x] 1.2 Add the test-only token and account-auth fixtures plus constructor, role, deadline-boundary, stale-version, duplicate-action, evidence-revision, hold, rotation, fixed-token/destination, refund, transfer-rollback, and missing-state tests; capture the 24-test initial red run and its expected failures in `docs/VERIFICATION.md`.
 
 ## 2. Award state and authorization
 
