@@ -107,6 +107,9 @@ class Award(models.Model):
         max_length=12, choices=Status.choices, default=Status.CREATED
     )
     version = models.PositiveBigIntegerField(default=0)
+    deployment_manifest = models.JSONField(default=dict)
+    sponsor_hold = models.BooleanField(default=False)
+    verifier_hold = models.BooleanField(default=False)
     evidence_revision = models.PositiveIntegerField(default=0)
     evidence_digest = models.CharField(max_length=64, blank=True)
     last_confirmed_ledger = models.PositiveBigIntegerField(null=True, blank=True)
@@ -251,6 +254,7 @@ class ReviewAction(models.Model):
     )
     rationale = models.TextField()
     source_check_method = models.CharField(max_length=512, blank=True)
+    source_confirmed = models.BooleanField(default=False)
     expected_version = models.PositiveBigIntegerField()
     status = models.CharField(max_length=12, default="PENDING")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -262,3 +266,63 @@ class ReviewAction(models.Model):
         if not self._state.adding:
             raise ValidationError("Review requests are append-only.")
         return super().save(*args, **kwargs)
+
+
+class ChainOperation(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    award = models.ForeignKey(
+        Award, on_delete=models.PROTECT, related_name="chain_operations"
+    )
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    signer = models.CharField(max_length=56)
+    reserves_source = models.BooleanField(default=True)
+    action = models.CharField(max_length=20)
+    idempotency_key = models.UUIDField()
+    intent = models.JSONField()
+    status = models.CharField(max_length=24, default="BUILDING")
+    unsigned_xdr = models.TextField(blank=True)
+    unsigned_hash = models.CharField(max_length=64, blank=True)
+    signed_xdr = models.TextField(blank=True)
+    signed_hash = models.CharField(max_length=64, unique=True, null=True, blank=True)
+    preview = models.JSONField(default=dict)
+    expected_snapshot = models.JSONField(default=dict)
+    review = models.OneToOneField(
+        ReviewAction, on_delete=models.PROTECT, null=True, blank=True
+    )
+    expires_at = models.DateTimeField()
+    error_code = models.CharField(max_length=48, blank=True)
+    confirmed_ledger = models.PositiveBigIntegerField(null=True, blank=True)
+    last_checked_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("actor", "idempotency_key"),
+                name="chain_actor_idempotency_unique",
+            ),
+            models.UniqueConstraint(
+                fields=("signer",),
+                condition=Q(
+                    reserves_source=True,
+                    status__in=(
+                        "BUILDING",
+                        "PREPARED",
+                        "SIGNED",
+                        "SUBMITTED",
+                        "UNKNOWN",
+                    ),
+                ),
+                name="chain_unresolved_signer_unique",
+            ),
+        ]
+
+
+class ChainObservation(models.Model):
+    operation = models.ForeignKey(
+        ChainOperation, on_delete=models.PROTECT, related_name="observations"
+    )
+    status = models.CharField(max_length=24)
+    code = models.CharField(max_length=48, blank=True)
+    ledger = models.PositiveBigIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)

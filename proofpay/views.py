@@ -38,17 +38,20 @@ def award_detail(request, award_id):
     return render(request, "proofpay/award_detail.html", award_context(request, award))
 
 
-@login_required
-@require_POST
-def prepare_payout(request, award_id):
-    award = get_object_or_404(visible_awards(request.user), pk=award_id)
-    require_award_role(request.user, award, {ProgramMember.Role.SPONSOR})
-    return JsonResponse(
-        {"detail": "Payout preparation is not available yet."}, status=501
-    )
-
-
 def award_context(request, award, form=None):
+    from datetime import datetime, timezone
+
+    terms = {
+        "requirements_text": award.deployment_manifest.get(
+            "requirements_text", award.program.requirements_text
+        )
+    }
+    for name in ("claim_deadline", "review_deadline", "payout_deadline"):
+        terms[name] = (
+            datetime.fromtimestamp(award.deployment_manifest[name], timezone.utc)
+            if name in award.deployment_manifest
+            else getattr(award.program, name)
+        )
     latest = award.evidence_versions.first()
     recipient = (
         award.recipient_member.user_id == request.user.pk
@@ -60,7 +63,17 @@ def award_context(request, award, form=None):
     )
     return {
         "award": award,
+        "replacement_verifiers": award.program.members.filter(
+            role="VERIFIER", active=True
+        ).exclude(pk=award.verifier_member_id),
+        "chain_operations": (
+            award.chain_operations.filter(actor=request.user)
+            if recipient
+            else award.chain_operations.all()
+        ).order_by("-created_at")[:10],
+        "chain_action_choices": chain_action_choices(request.user, award),
         "latest": latest,
+        "terms": terms,
         "versions": award.evidence_versions.prefetch_related("files"),
         "reviews": award.review_actions.select_related("evidence"),
         "is_recipient": recipient,
@@ -153,6 +166,7 @@ def review_request(request, award_id, action=None):
             request.POST.get("rationale", ""),
             expected_version=int(request.POST.get("expected_version", "-1")),
             source_check_method=request.POST.get("source_check_method", ""),
+            source_confirmed=request.POST.get("source_confirmed") == "on",
         )
     except (ValidationError, ValueError) as error:
         context = award_context(request, award)
@@ -173,3 +187,67 @@ def review_request(request, award_id, action=None):
         "Request recorded. This does not change the contract or confirm payment.",
     )
     return redirect("award_detail", award_id=award.pk)
+
+
+def chain_action_choices(user, award):
+    from proofpay.chain import ACTIVE
+    from proofpay.models import ChainOperation
+
+    role_members = (award.sponsor_member, award.verifier_member, award.recipient_member)
+    current = next(
+        (member for member in role_members if member.user_id == user.pk), None
+    )
+    if not current:
+        return []
+    if ChainOperation.objects.filter(
+        signer=current.public_wallet, status__in=ACTIVE, reserves_source=True
+    ).exists():
+        return [("REFUND", "Review expiry refund")] if current.role == "SPONSOR" else []
+    if user.pk == award.sponsor_member.user_id:
+        if not award.contract_id:
+            return [("DEPLOY", "Review award deployment")]
+        options = {
+            "CREATED": [("FUND", "Review funding"), ("CANCEL", "Review cancellation")],
+            "APPROVED": [("PAY", "Review payment")],
+            "FUNDED": [],
+            "SUBMITTED": [],
+            "REJECTED": [],
+        }.get(award.status, [])
+        if award.status in ("FUNDED", "SUBMITTED", "APPROVED", "REJECTED"):
+            options += [("REFUND", "Review expiry refund")]
+        if award.status in ("CREATED", "FUNDED", "SUBMITTED", "APPROVED", "REJECTED"):
+            options += [("REPLACE_VERIFIER", "Review verifier replacement")]
+        if award.status in ("FUNDED", "SUBMITTED", "APPROVED", "REJECTED"):
+            options += [("SET_HOLD", "Review hold change")]
+        options += [("EXTEND_TTL", "Review lifetime extension")]
+        return options
+    if (
+        user.pk == award.recipient_member.user_id
+        and award.status in ("FUNDED", "SUBMITTED")
+        and award.evidence_versions.exists()
+    ):
+        return [
+            ("SUBMIT", "Review evidence submission"),
+            ("EXTEND_TTL", "Review lifetime extension"),
+        ]
+    if user.pk == award.verifier_member.user_id:
+        return (
+            {
+                "SUBMITTED": [
+                    ("APPROVE", "Review approval"),
+                    ("REJECT", "Review rejection"),
+                ],
+                "APPROVED": [
+                    ("REJECT", "Review rejection"),
+                    ("REOPEN", "Review reopening"),
+                ],
+                "REJECTED": [("REOPEN", "Review reopening")],
+            }.get(award.status, [])
+            + (
+                [("SET_HOLD", "Review hold change")]
+                if award.status in ("FUNDED", "SUBMITTED", "APPROVED", "REJECTED")
+                else []
+            )
+            + [("EXTEND_TTL", "Review lifetime extension")]
+        )
+    return [("EXTEND_TTL", "Review lifetime extension")] if award.contract_id else []

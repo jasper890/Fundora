@@ -2,7 +2,7 @@
 
 Documentation for a proposed Stellar Testnet training-stipend prototype. A sponsor deposits funds, a recipient submits private evidence, a verifier approves it, and the sponsor separately authorizes payment. Blockchain records approvals and transfers; a human still checks the underlying completion record.
 
-**Status: Tasks 2 and 3 implemented locally, 16 November 2026.** The Django/PostgreSQL application now has role-scoped access, private evidence revisions and downloads, pending review requests, and styled screens based on the brand exploration. The Soroban contract passes its local invariant suite. Task 4 signing/reconciliation and Tasks 5-6 remain; wallet integration and live Testnet flows are unverified. Task 1's wallet/deployment-preparation gates remain open. See the verification record for exact results.
+**Status: Tasks 2-4 implemented locally, with the Task 4 real-wallet gate open, 16 November 2026.** The Django/PostgreSQL application now has role-scoped access, private evidence revisions and downloads, pending review requests, and styled screens based on the brand exploration. The Soroban contract passes its local invariant suite. Task 4 signing/reconciliation is implemented locally with real-wallet/live-network verification still open. Tasks 5-6 remain; wallet integration and live Testnet flows are unverified. Task 1's wallet/deployment-preparation gates remain open. See the verification record for exact results.
 
 ## Start here
 

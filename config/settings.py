@@ -9,7 +9,9 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "1").lower() in {"1", "true", "yes"}
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
     if not DEBUG:
-        raise ImproperlyConfigured("DJANGO_SECRET_KEY is required when DEBUG is disabled.")
+        raise ImproperlyConfigured(
+            "DJANGO_SECRET_KEY is required when DEBUG is disabled."
+        )
     SECRET_KEY = "local-development-only-not-for-deployment"
 if not DEBUG and not os.environ.get("POSTGRES_PASSWORD"):
     raise ImproperlyConfigured("POSTGRES_PASSWORD is required when DEBUG is disabled.")
@@ -77,7 +79,9 @@ DATABASES = {
 }
 
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
 ]
@@ -89,7 +93,9 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-PRIVATE_EVIDENCE_ROOT = Path(os.environ.get("PRIVATE_EVIDENCE_ROOT", BASE_DIR / "private_evidence"))
+PRIVATE_EVIDENCE_ROOT = Path(
+    os.environ.get("PRIVATE_EVIDENCE_ROOT", BASE_DIR / "private_evidence")
+)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "/login/"
@@ -106,3 +112,16 @@ X_FRAME_OPTIONS = "DENY"
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+
+
+# Network writes require explicit local operator authorization.
+STELLAR_RPC_URL = os.environ.get(
+    "STELLAR_RPC_URL", "https://soroban-testnet.stellar.org"
+)
+STELLAR_NETWORK_PASSPHRASE = os.environ.get(
+    "STELLAR_NETWORK_PASSPHRASE", "Test SDF Network ; September 2015"
+)
+STELLAR_WASM_HASH = os.environ.get("STELLAR_WASM_HASH", "")
+STELLAR_MAX_FEE = int(os.environ.get("STELLAR_MAX_FEE", "10000000"))
+STELLAR_ALLOW_SUBMISSION = os.environ.get("STELLAR_ALLOW_SUBMISSION", "0") == "1"
+STATICFILES_DIRS = [BASE_DIR / "static"]

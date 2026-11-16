@@ -1,6 +1,6 @@
 # Proposed HTTP interfaces
 
-Status: implementation contract for the routes already listed in [system plan §5](../ProofPay_System_and_Implementation_Plan.md). None is implemented. The system plan governs roles, states, and fund rules. These JSON shapes make its pipeline concrete; they add no new payment feature.
+Status: Task 4 pipeline is implemented locally; real-wallet and live Testnet checks remain open. This contract covers the routes listed in [system plan §5](../ProofPay_System_and_Implementation_Plan.md). The system plan governs roles, states, and fund rules. These JSON shapes make its pipeline concrete; they add no new payment feature.
 
 ## Common rules
 
@@ -31,7 +31,7 @@ The server loads the immutable evidence row, derives revision/digest, verifies a
 | FUND, CANCEL, APPROVE, REJECT, REOPEN, PAY, REFUND | `{}` | `expected_version` required; reject stale state |
 | SUBMIT | `evidence_id` UUID | Resolve exact stored revision/digest |
 | SET_HOLD | `held` boolean | Derive actor address from logged-in member |
-| REPLACE_VERIFIER | `new_verifier_member_id` UUID | Pre-provisioned same-program verifier; derive valid distinct wallet |
+| REPLACE_VERIFIER | `new_verifier_member_id` positive integer membership ID | Pre-provisioned same-program verifier; derive valid distinct wallet |
 | EXTEND_TTL | `{}` | App permits scoped members; contract itself allows anyone to pay TTL fees; no business-version argument |
 
 Rejection/review rationale and source checks are stored as a pending `ReviewAction` before preparing the chain decision; they never become on-chain text. Preparation must find an authorized pending decision for the current evidence revision and bind it to the operation. Approval requires recorded source-check method and affirmative confirmation. A persisted request is not a confirmed approval.
@@ -96,3 +96,10 @@ JSON errors use `{"error":{"code":"STALE_VERSION","message":"Award changed. Refr
 ## Task 3 implementation note
 
 The implemented browser evidence endpoint renders field errors or redirects to the scoped award page after saving. Evidence details (UUID, revision, digest and private preview) are available there; a JSON upload response is not yet exposed. Multi-file downloads use `?file=0`, `?file=1` or `?file=2` (default zero), bounded to that version's ordered files. There is no storage URL in a response. `/awards/<uuid>/review/` accepts the allowlisted review action, `evidence_id`, `expected_version`, `rationale` and `source_check_method`; the request-changes and dispute aliases fix their respective actions. Stale forms return HTTP 409 and a visible refresh warning. Invalid forms return 400. Saved actions remain PENDING until the Task 4 signing/confirmation pipeline exists.
+
+
+## Task 4 implementation details
+
+`POST /operations/<uuid>/abandon/` accepts `{}` for the same actor's unsigned PREPARED operation. Signed/submitted/unknown requests cannot be abandoned. The legacy `/prepare/payout/` spelling maps to PAY; all other actions use the documented fixed allowlist. Current ProgramMember primary keys are integers, so the replacement member parameter uses a positive integer ID scoped to that award's program rather than an invented UUID. Approval preparation additionally requires the saved review's affirmative `source_confirmed` checkbox. Source confirmation, rationale and source reference remain private and are not contract arguments.
+
+Network writes default disabled (`STELLAR_ALLOW_SUBMISSION=0`). An explicitly configured installed WASM hash, matching native SAC and Testnet identity are required for real preparation. Setting a local funded snapshot is not equivalent to contract verification. Operation polling exposes only status/hash/ledger/error/time; prepared XDR is returned only to the actor by preparation. Current sponsor/verifier may inspect another actor's operation; recipients inspect only their own operations.

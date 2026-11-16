@@ -29,7 +29,7 @@ The Django development secret fallback is enabled only while `DEBUG` is true. Wi
 
 - The Python and browser dependency locks, TypeScript build, package audits, Django permission tests, framework check, and migration consistency check are recorded in [verification](VERIFICATION.md).
 - `@stellar/freighter-api` 6.0.1 compiles into the local browser bundle. Actual Testnet signing has not been verified: the user-controlled Freighter extension/wallet probe has not been run. Do not ask for or record a recovery phrase or private key.
-- Wrong-token, wrong-network, and wrong-code-hash deployment-preparation checks require the Task 2 contract/WASM and Task 4 preparation code. No deployment is authorized by this setup work.
+- Wrong-token, wrong-network, and wrong-code-hash preparation rejection tests now pass locally in Task 4. Live wallet signing/deployment validation remains open. No deployment is authorized by setup work.
 - `python manage.py check --deploy`, persistent evidence restore, private upload/download, and browser workflow checks remain future task gates.
 
 ## Unknown transaction
@@ -68,3 +68,14 @@ Apply `uv run python manage.py migrate --noinput`, then start `uv run python man
 Evidence stays unsigned until a confirmed chain submission. APPROVE/REJECT/REOPEN requests remain pending, and request-changes/dispute records do not themselves modify the contract. Confirmed evidence revision/digest/ledger fields must be populated by Task 4, never inferred from an upload. SQLite or fake chain confirmations are not used for local acceptance.
 
 The development database contains a labeled synthetic UI preview with three provisioned `preview-` accounts and no contract ID; its database-only Funded status is explicitly unconfirmed. No private keys are retained. This is browser-check data, not the reproducible ten-recipient Testnet demo planned for Task 5. Preview credentials are local-only and are not source-controlled.
+
+
+## Task 4 transaction pipeline
+
+Configure `STELLAR_RPC_URL` (default official Testnet), `STELLAR_NETWORK_PASSPHRASE` (must equal Testnet), `STELLAR_WASM_HASH` (the approved installed hash) and `STELLAR_MAX_FEE` (ceiling at most 10000000 base units). `STELLAR_ALLOW_SUBMISSION` defaults `0`; enable only after explicit network-write/deployment authorization and a user-controlled wallet probe. No private key environment variable is used. Code upload and deployment have not been performed by Task 4.
+
+Build the browser module with `npm.cmd run build`; run wallet boundary checks with `node --test tests/wallet_validation.test.mjs`. After database migration, `uv run python manage.py reconcile_chain` performs one reconciliation pass. `--watch` repeats every 15 seconds while the local demo is active. The command reads saved transaction hashes, records observations, and never builds or resubmits a transaction. Run a pass after restart. Unknown outcomes remain unknown until confirmed evidence is available.
+
+Preparation persists a source reservation before RPC work. An expired unsigned request may be abandoned; signed requests do not expire into failure. A hung BUILDING request remains reserved until its unsigned deadline. Review the existing operation rather than changing its idempotency key to bypass an unresolved action. The narrow ledger-confirmed expired-payout refund rule preserves the old UNKNOWN historical record.
+
+Freighter is not installed/ready according to the user. Live signing, rejection/wrong-network wallet exercises, and Testnet deployment/confirmation remain open. Automated wallet account/network and unsigned cancellation checks do not close that manual gate.

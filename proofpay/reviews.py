@@ -16,6 +16,7 @@ def record_review_request(
     *,
     expected_version: int,
     source_check_method: str = "",
+    source_confirmed: bool = False,
 ) -> ReviewAction:
     award = Award.objects.select_for_update().get(pk=award.pk)
     if action not in {"APPROVE", "REJECT", "REOPEN", "REQUEST_CHANGES", "DISPUTE"}:
@@ -72,5 +73,6 @@ def record_review_request(
         action=action,
         rationale=rationale,
         source_check_method=source_check_method,
+        source_confirmed=source_confirmed,
         expected_version=expected_version,
     )

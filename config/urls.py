@@ -2,11 +2,29 @@ from django.contrib import admin
 from django.contrib.auth.views import LoginView, LogoutView, PasswordChangeView
 from django.urls import path, reverse_lazy
 
-from proofpay import views
+from proofpay import views, chain_views
 from proofpay.forms import ProvisionedAuthenticationForm
 
 
 urlpatterns = [
+    path(
+        "awards/<uuid:award_id>/prepare/<str:action>/",
+        chain_views.prepare,
+        name="prepare_action",
+    ),
+    path(
+        "operations/<uuid:operation_id>/submit/",
+        chain_views.submit,
+        name="submit_operation",
+    ),
+    path(
+        "operations/<uuid:operation_id>/", chain_views.status, name="operation_status"
+    ),
+    path(
+        "operations/<uuid:operation_id>/abandon/",
+        chain_views.abandon,
+        name="abandon_operation",
+    ),
     path(
         "awards/<uuid:award_id>/evidence/",
         views.evidence_upload,
@@ -52,7 +70,8 @@ urlpatterns = [
     path("awards/<uuid:award_id>/", views.award_detail, name="award_detail"),
     path(
         "awards/<uuid:award_id>/prepare/payout/",
-        views.prepare_payout,
+        chain_views.prepare,
+        {"action": "PAY"},
         name="prepare_payout",
     ),
 ]
