@@ -1,0 +1,14 @@
+.venv/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+private_evidence/
+node_modules/
+static/proofpay/wallet.js
+target/
+.pytest_cache/
+.ruff_cache/
+coverage.xml
+htmlcov/

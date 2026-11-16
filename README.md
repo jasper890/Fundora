@@ -2,7 +2,7 @@
 
 Documentation for a proposed Stellar Testnet training-stipend prototype. A sponsor deposits funds, a recipient submits private evidence, a verifier approves it, and the sponsor separately authorizes payment. Blockchain records approvals and transfers; a human still checks the underlying completion record.
 
-**Status: design only, 16 November 2026.** This Git repository contains ProofPay documentation and OpenSpec development workflow tooling, but no ProofPay application, executable application setup, deployed contract, CI workflow, or completed customer pilot. Research checks reported in the repository report are checks of upstream projects, not ProofPay tests.
+**Status: Task 1 implementation in progress, 16 November 2026.** This repository now has a local Django/PostgreSQL baseline, role-scoped award access, provisioned login, locked dependencies, and a Freighter API browser bundle. The Soroban contract, evidence workflow, chain actions, and Testnet deployment are not implemented. No customer pilot or production readiness is claimed. Research checks in the repository report are checks of upstream projects, not ProofPay tests.
 
 ## Start here
 
@@ -33,7 +33,7 @@ Use this prompt:
 
 > Read AGENTS.md and its linked authoritative documents. Explain the selected scope and inspect the actual implementation environment. For this request, work only on the task I specify. Use the six-task implementation plan, smallest complete changes, and its required checks. Record passed, failed, and not-run results. Ask about genuine blockers; decide routine implementation details within scope. Keep private evidence and keys out of source and logs. Deployment, paid services, Mainnet, grant submission, and outreach require separate explicit authorization.
 
-These documents authorize documentation preparation only. A later user request starts implementation. If copied into an existing code repository, inspect and preserve that repository's code and more specific instructions before choosing the build location.
+The user authorized the six-task implementation on 16 November 2026. Task 1 remains in progress; see [OpenSpec](docs/OPENSPEC.md), [operations](docs/OPERATIONS.md), and [verification](docs/VERIFICATION.md) for actual state and blockers. Deployment and paid or public activity retain their separate authorization gates. If copied into another code repository, inspect and preserve that repository's code and more specific instructions before choosing the build location.
 
 ## Historical resources
 

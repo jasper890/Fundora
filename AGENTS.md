@@ -2,10 +2,10 @@
 
 Read [README.md](README.md), then [docs/ENGINEERING_STANDARD.md](docs/ENGINEERING_STANDARD.md). Read all four authoritative ProofPay handoff files linked there before changing product behavior. Read the relevant supporting design and verification sections for the requested task.
 
-Use [the OpenSpec workflow](docs/OPENSPEC.md) to track the existing six tasks. OpenSpec artifacts are derived from the authoritative documents and do not override them. The prepared Task 1 change is planning only until implementation is requested.
+Use [the OpenSpec workflow](docs/OPENSPEC.md) to track the existing six tasks. OpenSpec artifacts are derived from the authoritative documents and do not override them. The user authorized implementation on 16 November 2026; continue the prepared Task 1 change in the isolated implementation worktree.
 
-- This snapshot contains documentation only. Do not infer that commands, models, endpoints, or contracts already exist.
-- The current task authorizes documentation preparation. Implementation starts only when requested; deployment requires separate authorization.
+- This repository now contains a partial Task 1 Django/PostgreSQL baseline. Do not infer that the remaining award contract, evidence flow, chain endpoints, or Testnet deployment exist; inspect the code and verification record.
+- Implementation of the six planned tasks is authorized. Deployment, publishing, paid services, Mainnet, real funds, grant submission, and outreach still require separate authorization.
 - Follow the six tasks in `ProofPay_System_and_Implementation_Plan.md`; use its exact contract rules and acceptance criteria. Do not silently substitute ServicePass, a whole application fork, Mainnet, real funds, or AI approval.
 - Use the smallest correct change. Preserve existing behavior and trust checks. Prefer native framework features and existing helpers before dependencies or abstractions.
 - Check current version-matched APIs through Context7 when available and verify important Stellar behavior against primary vendor documentation. If Serena is used for coding, activate the actual code workspace before symbol tools.

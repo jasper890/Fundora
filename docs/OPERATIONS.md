@@ -1,15 +1,36 @@
-# Proposed setup and recovery procedures
+# Local setup and recovery procedures
 
-Status: planning runbook, not executable setup instructions. No application, server, contract deployment, or production incident has been operated here. The [system plan](../ProofPay_System_and_Implementation_Plan.md) owns architecture and chain behavior.
+Status: Task 1 local setup is being implemented and verified. The current baseline has no Soroban contract, evidence upload/download flow, chain transaction workflow, or deployed service. The [system plan](../ProofPay_System_and_Implementation_Plan.md) remains the source for product and chain behavior.
 
-## Local implementation entry
+## Verified local setup
 
-1. Inspect the destination repository and developer environment. Use an isolated implementation directory only if application code is still absent. Preserve these sources.
-2. Check the proposed Python/Django/PostgreSQL/Rust/SDK/Node baselines against current vendor docs and lock a compatible set. Probe browser wallet signing on Testnet before promising integration.
-3. Implement Task 1's application settings, migrations, local PostgreSQL setup, private persistent evidence storage, and tests. Document verified install/setup commands as those files are created.
-4. Use separate synthetic role accounts/wallets. Generate demo credentials locally; never commit them. Keep RPC configuration, Django secret, database credentials and storage configuration out of Git. Browser code receives no server secrets.
-5. Verify configured Testnet network/passphrase, native SAC identity, allowed WASM hash, fee ceiling and exact terms before asking a user to sign. Never paste a sample asset/contract address from documentation.
-6. Before any network deployment or hosted publication, obtain the explicit authorization required by the handoff. Hosting provider, spending limit and privacy/storage setup remain undecided.
+The implementation worktree is `C:\Users\R O G - S T R I X\.codex\worktrees\b84f\Proofpay` on Windows PowerShell. The recorded tools are Python 3.13.15, uv 0.12.21, Django 5.2.19, stellar-sdk 17.0.1, psycopg 3.3.9, Node 24.19.0, npm 11.17.0, TypeScript 7.0.2, esbuild 0.28.2, Rust/Cargo 1.99.1, Stellar CLI 28.1.0, Docker 29.8.1, and PostgreSQL 17 from the pinned major-version image. Rust target `wasm32v1-none` is installed. Recheck versions if the lockfiles or toolchain change.
+
+From the repository root:
+
+```powershell
+uv sync --locked
+docker compose up -d db
+uv run python manage.py migrate --noinput
+npm.cmd ci
+npm.cmd run build
+uv run python manage.py test proofpay.tests.test_permissions
+uv run python manage.py check
+uv run python manage.py makemigrations --check --dry-run
+```
+
+The local database runs in a dedicated `proofpay-postgres` container, uses the named `proofpay-postgres` volume, and is published only to `127.0.0.1:55432`. Its trust authentication is a local development shortcut. Do not expose it beyond loopback or reuse it for a hosted environment; configure a database password and secure transport there. Other Docker projects are separate and are not modified by this compose file.
+
+The Django development secret fallback is enabled only while `DEBUG` is true. With `DEBUG` disabled, set `DJANGO_SECRET_KEY` and `POSTGRES_PASSWORD`; configure `DJANGO_ALLOWED_HOSTS`, PostgreSQL connection values, secure storage and HTTPS before any hosted deployment. `PRIVATE_EVIDENCE_ROOT` defaults to a directory outside Django's static URL handling. There is no public media route. No personal evidence or real wallet material belongs in this worktree.
+
+`runserver` is for loopback-only local development, for example `uv run python manage.py runserver 127.0.0.1:8000`. It is not a staging or production server. Public signup is not configured; accounts are provisioned by an operator. Do not commit generated credentials.
+
+## Open Task 1 gates
+
+- The Python and browser dependency locks, TypeScript build, package audits, Django permission tests, framework check, and migration consistency check are recorded in [verification](VERIFICATION.md).
+- `@stellar/freighter-api` 6.0.1 compiles into the local browser bundle. Actual Testnet signing has not been verified: the user-controlled Freighter extension/wallet probe has not been run. Do not ask for or record a recovery phrase or private key.
+- Wrong-token, wrong-network, and wrong-code-hash deployment-preparation checks require the Task 2 contract/WASM and Task 4 preparation code. No deployment is authorized by this setup work.
+- `python manage.py check --deploy`, persistent evidence restore, private upload/download, and browser workflow checks remain future task gates.
 
 ## Unknown transaction
 
@@ -37,4 +58,4 @@ Use persistent private storage; back up files and their database manifests toget
 
 ## Hosted or real-user launch
 
-A hosted demo requires explicit destination/provider/budget, HTTPS, secure cookies, persistent storage, backups, safe logs, secrets management and deployment checks. Mainnet/real users require a separately approved scope, real demand evidence, contract/security/privacy/legal review, asset/cash-out decision, operational key recovery, and ongoing ownership. The current handoff authorizes none of those claims or commitments.
+A hosted demo requires explicit destination/provider/budget, HTTPS, secure cookies, persistent storage, backups, safe logs, secrets management and deployment checks. Mainnet/real users require a separately approved scope, real demand evidence, contract/security/privacy/legal review, asset/cash-out decision, operational key recovery, and ongoing ownership. The current authorization covers local implementation only; it does not authorize publishing, paid services, Mainnet, a grant submission or external outreach.

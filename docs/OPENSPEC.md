@@ -15,9 +15,9 @@ The `.cmd` form works in Windows PowerShell without changing script execution po
 
 ## Starting work
 
-Say: **Start Task 1 using the prepared OpenSpec change.** Read the required handoff sources first, then use `task-1-application-boundary`. Its artifacts are ready for review; all implementation checkboxes remain unchecked. Current authorization covers documentation and tooling only.
+The user authorized implementation of the six-task plan on 16 November 2026. Task 1 is active in an isolated worktree. Read the required handoff sources, then continue `task-1-application-boundary`; its implementation checklist records verified work and open gates.
 
-Codex can invoke `$openspec-apply-change task-1-application-boundary`; Claude can use `/openspec-apply-change task-1-application-boundary`. Plain-language requests also work. Product implementation requires a subsequent user instruction; deployment and spending retain their separate gates.
+Codex can invoke `$openspec-apply-change task-1-application-boundary`; Claude can use `/openspec-apply-change task-1-application-boundary`. Plain-language requests also work. Deployment, spending, publishing, Mainnet, real funds, grant submission and outreach retain separate authorization gates.
 
 ## Continuing the six tasks
 
@@ -37,6 +37,10 @@ Sources: [official setup](https://openspec.dev/docs/setup), [OpenSpec repository
 
 ## Integration evidence
 
-On 16 November 2026, OpenSpec 2.0.0 initialization for Codex and Claude completed, strict validation reported 1 passed and 0 failed, and status reported all four Task 1 planning artifacts present. Git whitespace checks passed. All eight implementation checklist items remain unchecked; no ProofPay application tests ran.
+At initialization on 16 November 2026, OpenSpec 2.0.0 setup for Codex and Claude completed, strict validation reported 1 passed and 0 failed, and status reported all four Task 1 planning artifacts present. At that point, all eight implementation items were unchecked and no ProofPay application tests had run.
 
 Generated workflow skills are from @fission-ai/openspec 2.0.0, upstream Fission-AI/OpenSpec. Its MIT notice is preserved in [OPENSPEC_LICENSE.txt](OPENSPEC_LICENSE.txt). On this Windows setup Claude skills are generated as separate files rather than filesystem links; retain both tool directories when copying the repository.
+
+## Current implementation checkpoint
+
+The Task 1 code is in `implementation/task-1-app-boundary` at the managed worktree recorded in [verification](VERIFICATION.md). Permission and login throttling tests, Django checks, migration consistency, dependency audits, and the browser bundle build are recorded there. The manual Freighter Testnet signing probe and deployment-preparation rejection checks remain open; the latter depend on the Task 2 contract and Task 4 preparation code. Do not mark Task 1 complete or archive its OpenSpec change until all source-task checks have evidence or a documented blocker/deferment.

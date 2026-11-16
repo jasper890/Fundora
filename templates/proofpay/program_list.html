@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Programs · ProofPay</title></head>
+  <body>
+    <main>
+      <h1>Programs</h1>
+      {% for membership in memberships %}
+        <section><h2>{{ membership.program.title }}</h2><p>Role: {{ membership.get_role_display }}</p></section>
+      {% empty %}
+        <p>No programs are assigned to this account.</p>
+      {% endfor %}
+      <p><a href="{% url 'password_change' %}">Change password</a></p>
+      <form action="{% url 'logout' %}" method="post">{% csrf_token %}<button type="submit">Sign out</button></form>
+    </main>
+  </body>
+</html>
