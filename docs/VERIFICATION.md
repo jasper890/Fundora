@@ -125,3 +125,20 @@ The signed hash and envelope are persisted before send. RPC calls occur outside 
 
 
 Task 4 local completion checkpoint: 44 app tests, 26 unchanged contract tests, three browser wallet-boundary tests, the browser build, migration consistency, chain-module Ruff checks and strict OpenSpec validation pass. Playwright verified the new module loads from localhost (HTTP 200), renders a synthetic preparation preview, cancels an unsigned request back to an enabled preparation control, and fits a 320px viewport. The preparation/cancellation browser responses were mocks; this did not sign or submit a network transaction. `reconcile_chain` runs successfully with no local submitted operations. The real Freighter cancellation/wrong-network/signature probe remains NOT RUN and prevents marking every Task 4 acceptance item complete.
+
+
+## Task 5 local recovery, audit and demo checkpoint - 16 November 2026
+
+Branch `implementation/task-5-recovery-demo`, based on `185169a`. Added settlement and deployment-recovery fields, guarded verified-state refresh, preview-first evidence retention, role-scoped program/audit screens, JSON/CSV exports, a ten-recipient seed command and Task 5 operational instructions. The contract production code did not change; two contract boundary tests extend expiry and held-refund coverage.
+
+- PASSED: `uv run python manage.py test proofpay.tests --noinput` — 52 app tests.
+- PASSED: `cargo test --manifest-path contracts/award/Cargo.toml --locked` — 28 contract tests.
+- PASSED: `npm.cmd run build` and `node --test tests/wallet_validation.test.mjs` — browser bundle and three account/network boundary tests.
+- PASSED: `uv run python manage.py check`; `uv run python manage.py makemigrations --check --dry-run` — no framework issues and no missing migration. Migration 0006 was applied to the local database.
+- PASSED: `npx.cmd --yes @fission-ai/openspec@2.0.0 validate task-5-recovery-demo --strict`.
+- NOT RUN: Ruff lint; Ruff is not installed in the locked project environment (`uv run ruff` could not find the executable). No project dependency was added for this optional check.
+- User reports Varial is installed in Brave and Test Net is selected. NOT RUN: the local `/wallet-check/` connection probe, wallet signing/cancellation/wrong-network check, and full browser workflow.
+- NOT RUN: controlled archived-state restoration and live TTL extension. Mocked/native checks do not establish that behavior on a live network.
+- NOT RUN: seeded Testnet funding, evidence submission, independent verifier approval, payout, duplicate rejection, and held expiry refund. No upload, deployment, or transaction was sent. The live flow needs twelve distinct sponsor/verifier/recipient public G-addresses and separate explicit authorization for network writes.
+
+Recovery keeps award identity and unknown operations when chain state is unavailable or regresses; it never infers a fresh unpaid award or redeploys. Export omits private evidence and signing envelopes, and formula-like CSV text is escaped. Purge previews eligible counts and only removes evidence after a Paid/Refunded settlement has been observed for more than 30 days. Task 5 remains open until its controlled archival and live Testnet checks have actual evidence. Task 6 usability and handoff evidence remains next.

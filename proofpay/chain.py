@@ -628,6 +628,10 @@ def reconcile(operation):
                     if replacement.public_wallet != snapshot["verifier"]:
                         raise ChainError("RESULT_MISMATCH")
                     award.verifier_member = replacement
+                award.deployment_error=""
+                award.verifier_sync_required=False
+                if snapshot["status"] in ("PAID","REFUNDED") and not award.settled_at:
+                    award.settled_at=timezone.now()
                 award.last_confirmed_ledger = result["ledger"]
                 award.save()
         if current.review_id and target.startswith("CONFIRMED"):

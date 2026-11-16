@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, FileResponse, Http404
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, PermissionDenied
 from django.shortcuts import redirect
 from django.contrib import messages
 from django.views.decorators.cache import never_cache
@@ -251,3 +251,48 @@ def chain_action_choices(user, award):
             + [("EXTEND_TTL", "Review lifetime extension")]
         )
     return [("EXTEND_TTL", "Review lifetime extension")] if award.contract_id else []
+
+
+@login_required
+@never_cache
+def program_detail(request, program_id):
+    from proofpay.models import Program
+    from django.utils import timezone
+    program=get_object_or_404(Program,pk=program_id,members__user=request.user,members__active=True)
+    awards=visible_awards(request.user).filter(program=program).select_related("recipient_member__user")
+    counts={name:awards.filter(status=name,last_confirmed_ledger__isnull=False).count() for name in ("FUNDED","SUBMITTED","APPROVED","PAID","REFUNDED")}
+    counts["ENROLLED"]=awards.count()
+    counts["REFUNDABLE"]=awards.filter(status__in=("FUNDED","SUBMITTED","APPROVED","REJECTED"),last_confirmed_ledger__isnull=False,program__payout_deadline__lt=timezone.now()).count()
+    from proofpay.exports import audit_awards
+    try:
+        audit_awards(request.user,program)
+        can_export=True
+    except PermissionDenied:
+        can_export=False
+    return render(request,"proofpay/program_detail.html",{"program":program,"awards":awards,"counts":counts,"can_export":can_export})
+
+
+@login_required
+@never_cache
+def program_export(request, program_id):
+    from proofpay.models import Program
+    from proofpay.exports import export_program
+    program=get_object_or_404(Program,pk=program_id,members__user=request.user,members__active=True)
+    try:
+        return export_program(request.user,program,request.GET.get("format","json"))
+    except ValidationError:
+        return JsonResponse({"error":"EXPORT_UNAVAILABLE","detail":"Check evidence integrity or the requested format."},status=400)
+
+
+@login_required
+@never_cache
+def award_audit(request, award_id):
+    award=get_object_or_404(visible_awards(request.user),pk=award_id)
+    operations=award.chain_operations.select_related("actor").prefetch_related("observations").order_by("created_at")
+    return render(request,"proofpay/award_audit.html",{"award":award,"operations":operations,"reviews":award.review_actions.select_related("evidence"),"evidence_versions":award.evidence_versions.all()})
+
+
+@login_required
+@never_cache
+def wallet_check(request):
+    return render(request,"proofpay/wallet_check.html")

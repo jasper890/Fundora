@@ -20,6 +20,7 @@ def visible_awards(user: AbstractBaseUser) -> QuerySet[Award]:
             verifier_member__user_id=user.pk,
             verifier_member__role=ProgramMember.Role.VERIFIER,
             verifier_member__active=True,
+            verifier_sync_required=False,
         )
         | Q(
             recipient_member__user_id=user.pk,
@@ -49,6 +50,7 @@ def require_award_role(
             and member.user_id == user.pk
             and member.role == role
             and member.active
+            and (role != ProgramMember.Role.VERIFIER or not award.verifier_sync_required)
         ):
             return member
     raise PermissionDenied

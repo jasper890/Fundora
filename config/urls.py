@@ -7,6 +7,10 @@ from proofpay.forms import ProvisionedAuthenticationForm
 
 
 urlpatterns = [
+    path("wallet-check/", views.wallet_check, name="wallet_check"),
+    path("programs/<uuid:program_id>/", views.program_detail, name="program_detail"),
+    path("programs/<uuid:program_id>/export/", views.program_export, name="program_export"),
+    path("awards/<uuid:award_id>/audit/", views.award_audit, name="award_audit"),
     path(
         "awards/<uuid:award_id>/prepare/<str:action>/",
         chain_views.prepare,

@@ -1,5 +1,5 @@
 import {requireAssignedWallet} from "./wallet_validation";
-import {getNetwork, requestAccess, signTransaction} from "@stellar/freighter-api";
+import {getNetwork, requestAccess, signTransaction, isConnected} from "@stellar/freighter-api";
 export {getNetwork, isConnected, requestAccess, signTransaction} from "@stellar/freighter-api";
 
 type Prepared = {operation_id:string; unsigned_xdr:string; preview:Record<string,string|number|null>; status:string};
@@ -95,4 +95,33 @@ if (host) {
   host.querySelectorAll<HTMLButtonElement>("[data-refresh-operation]").forEach(button=>button.addEventListener("click",async()=>{
     button.disabled=true;try{await refresh(button.dataset.refreshOperation!);}catch{message.textContent="Status unavailable. Last confirmed award state is unchanged.";}finally{button.disabled=false;}
   }));
+}
+
+
+const probe=document.querySelector<HTMLElement>("[data-wallet-probe]");
+if(probe) {
+  const button=probe.querySelector<HTMLButtonElement>("button")!;
+  const output=probe.querySelector<HTMLElement>("[data-wallet-result]")!;
+  button.addEventListener("click",async()=>{
+    button.disabled=true;
+    output.textContent="Checking the wallet extension in this browser...";
+    let timer:number|undefined;
+    try {
+      const result=await Promise.race([
+        (async()=>{
+          const installed=await isConnected();
+          if(installed.error||!installed.isConnected) throw new Error("Wallet extension unavailable. Install or unlock Varial (Freighter) in this browser, then reload this page.");
+          const access=await requestAccess();
+          if(access.error||!access.address) throw new Error("Connection was declined or the wallet is locked. Unlock it and try again.");
+          const network=await getNetwork();
+          if(network.error) throw new Error("Could not read the wallet network.");
+          if(network.networkPassphrase!=="Test SDF Network ; September 2015") throw new Error("Switch the wallet to Testnet, then check again.");
+          return access.address;
+        })(),
+        new Promise<never>((_,reject)=>{timer=window.setTimeout(()=>reject(new Error("Wallet did not respond. Unlock Varial (Freighter), confirm it is installed in this browser, and retry.")),15000);})
+      ]);
+      output.textContent=`Connection check passed on Testnet. Public wallet address: ${result}. No transaction was signed or submitted.`;
+    }catch(error){output.textContent=error instanceof Error?error.message:"Wallet check unavailable.";}
+    finally{window.clearTimeout(timer);button.disabled=false;}
+  });
 }

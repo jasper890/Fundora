@@ -47,6 +47,8 @@ def private_path(name: str) -> Path:
 
 
 def verify_evidence(version: EvidenceVersion) -> None:
+    if version.purged_at:
+        raise ValidationError("Evidence was removed under the retention policy; its commitment remains in the audit record.")
     canonical = canonical_manifest(version)
     if (
         canonical != version.manifest.encode("utf-8")

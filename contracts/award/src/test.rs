@@ -991,3 +991,99 @@ fn approval_without_evidence_returns_missing_evidence() {
     assert_eq!(fixture.client().get_state().status, Status::Funded);
     assert_eq!(fixture.client().get_state().version, 1);
 }
+
+#[test]
+fn expiry_refund_covers_all_unpaid_states_and_hold_combinations() {
+    for stage in 0..4 {
+        for sponsor_hold in [false, true] {
+            for verifier_hold in [false, true] {
+                let fixture = Fixture::new();
+                let digest = BytesN::from_array(&fixture.env, &[31; 32]);
+                fixture.fund(0);
+                let mut version = 1;
+                if stage > 0 {
+                    fixture.submit(1, &digest, version);
+                    version += 1;
+                }
+                if stage == 2 {
+                    fixture.approve(version);
+                    version += 1;
+                }
+                if stage == 3 {
+                    fixture.reject(version);
+                    version += 1;
+                }
+                if sponsor_hold {
+                    fixture.set_hold(&fixture.sponsor, true, version);
+                    version += 1;
+                }
+                if verifier_hold {
+                    fixture.set_hold(&fixture.verifier, true, version);
+                    version += 1;
+                }
+                fixture.env.ledger().set_timestamp(1_300);
+                fixture.mock_all_auths();
+                assert!(matches!(
+                    fixture.client().try_refund(&version),
+                    Err(Ok(Error::Deadline))
+                ));
+                assert_eq!(
+                    MockTokenClient::new(&fixture.env, &fixture.token).balance(&fixture.contract),
+                    AWARD_AMOUNT
+                );
+                assert_eq!(
+                    MockTokenClient::new(&fixture.env, &fixture.token).balance(&fixture.sponsor),
+                    0
+                );
+                fixture.env.ledger().set_timestamp(1_301);
+                fixture.refund(version);
+                let auths = fixture.env.auths();
+                assert_eq!(auths.len(), 1);
+                assert_eq!(auths[0].0, fixture.sponsor);
+                assert_eq!(fixture.client().get_state().status, Status::Refunded);
+                assert_eq!(fixture.client().get_state().version, version + 1);
+                assert_eq!(
+                    MockTokenClient::new(&fixture.env, &fixture.token).balance(&fixture.sponsor),
+                    AWARD_AMOUNT
+                );
+                assert_eq!(
+                    MockTokenClient::new(&fixture.env, &fixture.token).balance(&fixture.contract),
+                    0
+                );
+                assert_eq!(
+                    MockTokenClient::new(&fixture.env, &fixture.token).balance(&fixture.recipient),
+                    0
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn late_payment_preserves_approval_and_fixed_balances() {
+    let fixture = Fixture::new();
+    let digest = BytesN::from_array(&fixture.env, &[32; 32]);
+    fixture.fund(0);
+    fixture.submit(1, &digest, 1);
+    fixture.approve(2);
+    let before = fixture.client().get_state();
+    fixture.env.ledger().set_timestamp(1_301);
+    fixture.mock_all_auths();
+    assert!(matches!(
+        fixture.client().try_pay(&3),
+        Err(Ok(Error::Deadline))
+    ));
+    assert_eq!(fixture.client().get_state(), before);
+    assert_eq!(
+        MockTokenClient::new(&fixture.env, &fixture.token).balance(&fixture.contract),
+        AWARD_AMOUNT
+    );
+    assert_eq!(
+        MockTokenClient::new(&fixture.env, &fixture.token).balance(&fixture.recipient),
+        0
+    );
+    assert_eq!(
+        MockTokenClient::new(&fixture.env, &fixture.other_token).balance(&fixture.recipient),
+        0
+    );
+}

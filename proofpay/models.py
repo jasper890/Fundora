@@ -107,6 +107,9 @@ class Award(models.Model):
         max_length=12, choices=Status.choices, default=Status.CREATED
     )
     version = models.PositiveBigIntegerField(default=0)
+    settled_at = models.DateTimeField(null=True, blank=True)
+    deployment_error = models.CharField(max_length=48, blank=True)
+    verifier_sync_required = models.BooleanField(default=False)
     deployment_manifest = models.JSONField(default=dict)
     sponsor_hold = models.BooleanField(default=False)
     verifier_hold = models.BooleanField(default=False)
@@ -195,6 +198,7 @@ class EvidenceVersion(models.Model):
         Award, on_delete=models.PROTECT, related_name="evidence_versions"
     )
     revision = models.PositiveIntegerField()
+    purged_at = models.DateTimeField(null=True, blank=True)
     nonce = models.CharField(max_length=64)
     manifest = models.TextField()
     digest = models.CharField(max_length=64)
