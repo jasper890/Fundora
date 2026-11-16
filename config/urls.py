@@ -1,9 +1,9 @@
 from django.contrib import admin
-from django.contrib.auth.views import LoginView, LogoutView, PasswordChangeView
+from django.contrib.auth.views import LogoutView, PasswordChangeView
 from django.urls import path, reverse_lazy
 
 from proofpay import views, chain_views
-from proofpay.forms import ProvisionedAuthenticationForm
+from proofpay.login_view import RoleLoginView
 
 
 urlpatterns = [
@@ -53,14 +53,8 @@ urlpatterns = [
         name="disputes",
     ),
     path("admin/", admin.site.urls),
-    path(
-        "login/",
-        LoginView.as_view(
-            template_name="registration/login.html",
-            authentication_form=ProvisionedAuthenticationForm,
-        ),
-        name="login",
-    ),
+    path("login/", RoleLoginView.as_view(), name="login"),
+    path("login/<slug:door>/", RoleLoginView.as_view(), name="login_door"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path(
         "password-change/",

@@ -66,6 +66,8 @@ class AwardPermissionTests(TestCase):
         response = self.client.get(reverse("program_list"))
 
         self.assertContains(response, "Not confirmed on-chain")
+        self.assertContains(response, "Recipient")
+        self.assertContains(response, 'class="role-label"')
 
     def test_unrelated_program_participant_gets_404(self):
         unrelated = User.objects.create_user("unrelated")
@@ -247,3 +249,61 @@ class ProvisionedLoginTests(TestCase):
         bucket = LoginAttempt.objects.get(account_ip_digest=bucket.account_ip_digest)
         self.assertEqual(bucket.failed_attempts, 0)
         self.assertTrue(bucket.last_succeeded)
+
+
+class RoleDoorTests(TestCase):
+    password = "a-strong-test-password"
+
+    def setUp(self):
+        fixture = AwardPermissionTests()
+        fixture.setUp()
+        self.client = Client()
+        self.recipient = fixture.recipient
+        self.program = fixture.program
+        self.award = fixture.award
+        self.recipient.set_password(self.password)
+        self.recipient.save(update_fields=("password",))
+
+    def test_login_chooser_names_jobs_without_asking_for_a_password(self):
+        response = self.client.get(reverse("login") + "?next=/programs/")
+
+        self.assertContains(response, "Sponsor")
+        self.assertContains(response, "Verifier")
+        self.assertContains(response, "Recipient")
+        self.assertContains(response, "Fund the award and release payment after approval.")
+        self.assertNotContains(response, "Password")
+        self.assertContains(response, "/login/sponsor/?next=/programs/")
+
+    def test_wrong_door_signs_in_without_granting_that_role(self):
+        response = self.client.post(
+            reverse("login_door", kwargs={"door": "sponsor"}),
+            {"username": self.recipient.username, "password": self.password},
+            follow=True,
+        )
+
+        self.assertEqual(response.redirect_chain, [("/programs/", 302)])
+        self.assertContains(
+            response, "This account is a recipient. Showing that workspace."
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse("program_export", args=(self.program.pk,))
+            ).status_code,
+            403,
+        )
+        denied = self.client.post(
+            reverse("prepare_action", args=(self.award.pk, "DEPLOY")),
+            content_type="application/json",
+        )
+        self.assertEqual(denied.status_code, 403)
+        self.assertEqual(denied.json()["error"], "ACTION_DENIED")
+
+    def test_failed_password_stays_on_the_same_door(self):
+        response = self.client.post(
+            reverse("login_door", kwargs={"door": "recipient"}),
+            {"username": self.recipient.username, "password": "wrong-password"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Recipient sign-in")
+        self.assertContains(response, "Invalid username or password.")

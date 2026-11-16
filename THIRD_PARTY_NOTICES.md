@@ -40,6 +40,10 @@ No third-party application source code was copied or adapted for this baseline. 
 | greenlet | 3.5.6 | MIT and PSF-derived source notices (`LICENSE`, `LICENSE.PSF`) |
 | pyee | 14.0.0 | MIT |
 
+## Self-hosted interface fonts
+
+Latin WOFF2 files for Source Sans 3 (400/600/700) and Source Serif 4 (400/600) are stored under `proofpay/static/proofpay/fonts/`. They were taken from `@fontsource/source-sans-3` 5.2.9 and `@fontsource/source-serif-4` 5.2.9. Both families are licensed under the SIL Open Font License 1.1. The license texts shipped with those packages are preserved as `SOURCE_SANS_3_OFL.txt` and `SOURCE_SERIF_4_OFL.txt` beside the font files. No Google Fonts CDN request is made from the app.
+
 ## Browser bundle and build packages
 
 | Package | Version | License metadata |

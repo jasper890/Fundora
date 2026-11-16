@@ -14,6 +14,16 @@ from django.views.decorators.http import require_POST
 
 from proofpay.models import ProgramMember
 from proofpay.permissions import require_award_role, visible_awards
+from proofpay.presentation import next_step, status_lines, tracker_steps
+
+
+def _decorate_awards(awards, user):
+    decorated = []
+    for award in awards:
+        award.status_lines = status_lines(award)
+        award.next_step = next_step(award, user)
+        decorated.append(award)
+    return decorated
 
 
 @login_required
@@ -21,12 +31,21 @@ def program_list(request):
     memberships = ProgramMember.objects.filter(
         user=request.user, active=True
     ).select_related("program")
+    awards = _decorate_awards(
+        visible_awards(request.user).select_related(
+            "program",
+            "sponsor_member",
+            "verifier_member",
+            "recipient_member",
+        ),
+        request.user,
+    )
     return render(
         request,
         "proofpay/program_list.html",
         {
             "memberships": memberships,
-            "awards": visible_awards(request.user).select_related("program"),
+            "awards": awards,
         },
     )
 
@@ -78,6 +97,9 @@ def award_context(request, award, form=None):
         "reviews": award.review_actions.select_related("evidence"),
         "is_recipient": recipient,
         "is_verifier": verifier,
+        "status_lines": status_lines(award),
+        "next_step": next_step(award, request.user),
+        "tracker_steps": tracker_steps(award),
         "form": form
         or EvidenceForm(
             initial={"expected_revision": latest.revision if latest else 0}
@@ -259,10 +281,16 @@ def program_detail(request, program_id):
     from proofpay.models import Program
     from django.utils import timezone
     program=get_object_or_404(Program,pk=program_id,members__user=request.user,members__active=True)
-    awards=visible_awards(request.user).filter(program=program).select_related("recipient_member__user")
-    counts={name:awards.filter(status=name,last_confirmed_ledger__isnull=False).count() for name in ("FUNDED","SUBMITTED","APPROVED","PAID","REFUNDED")}
-    counts["ENROLLED"]=awards.count()
-    counts["REFUNDABLE"]=awards.filter(status__in=("FUNDED","SUBMITTED","APPROVED","REJECTED"),last_confirmed_ledger__isnull=False,program__payout_deadline__lt=timezone.now()).count()
+    awards_qs=visible_awards(request.user).filter(program=program).select_related(
+        "recipient_member__user",
+        "sponsor_member",
+        "verifier_member",
+        "recipient_member",
+    )
+    counts={name:awards_qs.filter(status=name,last_confirmed_ledger__isnull=False).count() for name in ("FUNDED","SUBMITTED","APPROVED","PAID","REFUNDED")}
+    counts["ENROLLED"]=awards_qs.count()
+    counts["REFUNDABLE"]=awards_qs.filter(status__in=("FUNDED","SUBMITTED","APPROVED","REJECTED"),last_confirmed_ledger__isnull=False,program__payout_deadline__lt=timezone.now()).count()
+    awards=_decorate_awards(awards_qs, request.user)
     from proofpay.exports import audit_awards
     try:
         audit_awards(request.user,program)
