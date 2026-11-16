@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-16
+goal: Add the immutable single-award contract with explicit authorization,
+  version, deadline, token, hold, refund, and archival invariants.
