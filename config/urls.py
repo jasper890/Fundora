@@ -3,8 +3,12 @@ from django.contrib.auth.views import LogoutView, PasswordChangeView
 from django.urls import path, reverse_lazy
 
 from proofpay import views, chain_views
+from proofpay.forms import ProofPayPasswordChangeForm
 from proofpay.login_view import RoleLoginView
 
+
+handler403 = "proofpay.views.permission_denied_view"
+handler404 = "proofpay.views.page_not_found_view"
 
 urlpatterns = [
     path("wallet-check/", views.wallet_check, name="wallet_check"),
@@ -60,6 +64,7 @@ urlpatterns = [
         "password-change/",
         PasswordChangeView.as_view(
             template_name="registration/password_change.html",
+            form_class=ProofPayPasswordChangeForm,
             success_url=reverse_lazy("program_list"),
         ),
         name="password_change",

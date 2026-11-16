@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from django import forms
 from django.conf import settings
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
@@ -26,6 +26,12 @@ class ProvisionedAuthenticationForm(AuthenticationForm):
         "invalid_login": "Invalid username or password.",
         "inactive": "This account is inactive.",
     }
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("label_suffix", "")
+        super().__init__(*args, **kwargs)
+        self.fields["username"].label = "Username"
+        self.fields["password"].label = "Password"
 
     def clean(self):
         now = timezone.now()
@@ -89,7 +95,22 @@ class ProvisionedAuthenticationForm(AuthenticationForm):
 
 class EvidenceForm(forms.Form):
     explanation = forms.CharField(
-        max_length=2000, widget=forms.Textarea(attrs={"rows": 4})
+        label="Explanation",
+        max_length=2000,
+        widget=forms.Textarea(attrs={"rows": 4}),
     )
     source_ref = forms.CharField(max_length=512, label="Original source reference")
     expected_revision = forms.IntegerField(min_value=0, widget=forms.HiddenInput)
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("label_suffix", "")
+        super().__init__(*args, **kwargs)
+
+
+class ProofPayPasswordChangeForm(PasswordChangeForm):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("label_suffix", "")
+        super().__init__(*args, **kwargs)
+        self.fields["old_password"].label = "Current password"
+        self.fields["new_password1"].label = "New password"
+        self.fields["new_password2"].label = "Confirm new password"

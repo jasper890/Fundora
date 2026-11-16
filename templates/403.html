@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Access denied | ProofPay{% endblock %}
+{% block content %}
+<section class="login">
+  <h1>Access denied</h1>
+  <p>You do not have permission to open that page.</p>
+  <p><a href="{% url 'program_list' %}">Back to programs</a></p>
+</section>
+{% endblock %}

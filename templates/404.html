@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Page not found | ProofPay{% endblock %}
+{% block content %}
+<section class="login">
+  <h1>Page not found</h1>
+  <p>That page is not available in ProofPay.</p>
+  <p><a href="{% url 'program_list' %}">Back to programs</a></p>
+</section>
+{% endblock %}

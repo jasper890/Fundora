@@ -19,6 +19,10 @@
       {% endif %}
     </article>
   {% empty %}
-    <p>No evidence saved yet. The recipient can add completion records after funding.</p>
+    {% if is_recipient %}
+      <p>No evidence saved yet. Use Add a new evidence revision to attach your completion record.</p>
+    {% else %}
+      <p>No evidence saved yet. Waiting for the recipient to add a completion record after funding.</p>
+    {% endif %}
   {% endfor %}
 </section>

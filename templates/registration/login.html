@@ -11,9 +11,21 @@
     <p>Use the account your organizer gave you.</p>
   {% endif %}
   <section>
-    <form method="post">
+    <form method="post" novalidate>
       {% csrf_token %}
-      {{ form.as_p }}
+      {% if form.non_field_errors %}
+        <p class="error" role="alert">{{ form.non_field_errors|striptags }}</p>
+      {% endif %}
+      <p>
+        <label for="{{ form.username.id_for_label }}">Username</label>
+        {{ form.username }}
+        {% if form.username.errors %}<span class="error">{{ form.username.errors|striptags }}</span>{% endif %}
+      </p>
+      <p>
+        <label for="{{ form.password.id_for_label }}">Password</label>
+        {{ form.password }}
+        {% if form.password.errors %}<span class="error">{{ form.password.errors|striptags }}</span>{% endif %}
+      </p>
       <button type="submit">Sign in</button>
     </form>
   </section>

@@ -373,3 +373,11 @@ def award_audit(request, award_id):
 @never_cache
 def wallet_check(request):
     return render(request,"proofpay/wallet_check.html")
+
+
+def page_not_found_view(request, exception):
+    return render(request, "404.html", status=404)
+
+
+def permission_denied_view(request, exception):
+    return render(request, "403.html", status=403)
