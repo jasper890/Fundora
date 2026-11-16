@@ -1,6 +1,6 @@
 # Verification and completion evidence
 
-Status: Task 1 local baseline evidence recorded; Task 2 contract implementation and local release verification are complete; live Testnet, archival recovery, private evidence, application integration, and acceptance criteria A1-A10 remain incomplete. Historical upstream example results in the [repository report](../ProofPay_Repository_Validation.md) are not ProofPay test results. The [system plan](../ProofPay_System_and_Implementation_Plan.md) remains authoritative.
+Status: Task 1 local baseline evidence recorded; Task 2 contract implementation and local release verification are complete; Task 3 private evidence/review is implemented locally; live Testnet, archival recovery, chain integration, and acceptance criteria A1-A10 remain incomplete. Historical upstream example results in the [repository report](../ProofPay_Repository_Validation.md) are not ProofPay test results. The [system plan](../ProofPay_System_and_Implementation_Plan.md) remains authoritative.
 
 ## Task 1 implementation record — 16 November 2026
 
@@ -28,7 +28,7 @@ At the Task 1 snapshot, no contract invariant suite, private evidence upload/dow
 |---|---|---|---|---|
 | A1: fixed synthetic program and distinct roles | 1, 2, 5 | Ten synthetic recipients; equality of role users/wallets rejected; all amounts 200000000 | `test_permissions`; contract constructor tests; seed verification | PARTIAL: database role checks and Soroban constructor constraints pass; seeded ten-recipient demo is not implemented. |
 | A2: funding actually confirmed | 2, 4, 5 | Exact sponsor/contract token balance change and expected state | Contract fund tests and independent Testnet read/hash | PARTIAL: local bound-token balance/state tests pass; independent Testnet read/hash is NOT RUN. |
-| A3: evidence privacy | 3 | Anonymous/unrelated/old verifier download denied; authorized access succeeds | `test_evidence`, `test_permissions` | NOT RUN: page access tests pass; private evidence routes are not implemented. |
+| A3: evidence privacy | 3 | Anonymous/unrelated/old verifier download denied; authorized access succeeds | `test_evidence`, `test_permissions` | PARTIAL: private evidence access, corruption, and confirmed-assignment rotation tests pass locally; live chain rotation remains pending Task 4. |
 | A4: approve then pay once | 2, 4, 5 | Current verifier approval, sponsor signature, immutable recipient balance increases once | Contract authorization/balance tests and demo transaction records | PARTIAL: local authorization and fixed-recipient payout tests pass; demo transaction evidence is NOT RUN. |
 | A5: invalid payout blocked | 2, 4 | Wrong signer, missing approval, hold, deadline, duplicate and redirect attempts move no funds | Contract negative tests; signed-body mutation tests | PARTIAL: local negative contract tests pass; signed-body mutation tests are pending Task 4. |
 | A6: stale evidence/rotation invalidated | 2, 3, 4 | Old version rejected; confirmed rotation removes old access; unknown rotation grants none | Named rotation/revision tests and app access tests | PARTIAL: local stale-version, rotation, and reopened-revision tests pass; private evidence access tests are pending Task 3. |
@@ -91,3 +91,19 @@ Working snapshot: Task 2 branch after `57331b4`, with the contract implementatio
 | Testnet transaction or archival restoration | NOT RUN | No transaction was sent; native tests do not prove live SAC behavior or archive restoration. |
 
 Implementation follows the system plan's rule that an `Approved` or `Rejected` award must be reopened by the current verifier before the recipient can submit the next revision. The contract uses an internal verifier/revision/digest approval record, emits public history events without private evidence, checks expected versions before authorization or side effects, and maps any bound-token transfer failure to a rollback-triggering contract error. The local mock proves atomic rollback only against the test token. Task 2 has not been deployed, uploaded, or audited.
+
+
+## Task 3 private evidence and review - 16 November 2026
+
+Branch: `implementation/task-3-private-evidence`, based on `456d763`. Additive migration 0003 adds immutable-through-app evidence versions/files, pending review actions, and confirmed-evidence projection fields. Brand direction A is applied to login, account, program and award/evidence/review pages using local font fallbacks. No new production dependencies were added.
+
+- FAILED (expected development red): initial missing-module run, then service-stub run failed before evidence/review implementation. These are pre-implementation records, not acceptance passes.
+- PASSED: final `uv run python manage.py test proofpay.tests --noinput`: 24 tests, including 13 new privacy/integrity/stale-review tests and the 11 original permission tests.
+- PASSED: `uv run python manage.py migrate --noinput` applied 0003; `makemigrations --check --dry-run` reports no missing migrations; Django system check reports no issues.
+- PASSED: `npm.cmd run build` completes TypeScript and browser bundle build. Task 4 signing is still unavailable.
+- PASSED: strict OpenSpec validation for task-3-private-evidence.
+- PASSED: Playwright browser spot checks on localhost: recipient upload succeeds; a second tab with old revision receives HTTP 409 and a stale warning; an approval form opened before another revision receives HTTP 409 with the changed-evidence warning. These use labeled synthetic local data, no chain transactions.
+- PASSED: browser visual inspection of desktop login and award/evidence page; 320px viewport reports document width 320px. This is a spot check, not a full accessibility audit or outside usability test.
+- NOT RUN: live Testnet evidence submission, chain-confirmed verifier rotation, wallet signing, full end-to-end reconciliation, malware scanning and outside usability testing. Task 4 owns chain projection updates; current tests simulate confirmed assignments and verify that proposed replacements receive no access.
+
+File and manifest hashes are rechecked before review/download. No uploaded bytes or private storage paths are committed. Normal failed writes remove newly written files; a process crash can still leave unreferenced files for later retention/reconciliation tooling. Evidence model immutability is enforced through app services/model saves; database operators can alter data. No authenticity, audit or production-readiness claim is made.

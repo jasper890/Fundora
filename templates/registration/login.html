@@ -1,14 +1,1 @@
-<!doctype html>
-<html lang="en">
-  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sign in · ProofPay</title></head>
-  <body>
-    <main>
-      <h1>Sign in to ProofPay</h1>
-      <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Sign in</button>
-      </form>
-    </main>
-  </body>
-</html>
+{% extends "base.html" %}{% block title %}Sign in | ProofPay{% endblock %}{% block content %}<div class="login"><p class="muted">Know the next step.</p><h1>Sign in to your workspace</h1><p>View your assigned workshop, completion evidence and stipend record.</p><section><form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Sign in</button></form></section><p class="muted">Accounts are provided by your program organizer.</p></div>{% endblock %}

@@ -7,6 +7,29 @@ from proofpay.forms import ProvisionedAuthenticationForm
 
 
 urlpatterns = [
+    path(
+        "awards/<uuid:award_id>/evidence/",
+        views.evidence_upload,
+        name="evidence_upload",
+    ),
+    path(
+        "evidence/<uuid:evidence_id>/download/",
+        views.evidence_download,
+        name="evidence_download",
+    ),
+    path("awards/<uuid:award_id>/review/", views.review_request, name="review_request"),
+    path(
+        "awards/<uuid:award_id>/request-changes/",
+        views.review_request,
+        {"action": "REQUEST_CHANGES"},
+        name="request_changes",
+    ),
+    path(
+        "awards/<uuid:award_id>/disputes/",
+        views.review_request,
+        {"action": "DISPUTE"},
+        name="disputes",
+    ),
     path("admin/", admin.site.urls),
     path(
         "login/",
@@ -27,5 +50,9 @@ urlpatterns = [
     ),
     path("programs/", views.program_list, name="program_list"),
     path("awards/<uuid:award_id>/", views.award_detail, name="award_detail"),
-    path("awards/<uuid:award_id>/prepare/payout/", views.prepare_payout, name="prepare_payout"),
+    path(
+        "awards/<uuid:award_id>/prepare/payout/",
+        views.prepare_payout,
+        name="prepare_payout",
+    ),
 ]

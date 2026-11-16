@@ -91,3 +91,8 @@ Reviewer `POST /awards/<uuid>/request-changes/` records current evidence ID, bou
 | 503 | RPC_UNAVAILABLE | Operation status retained; retry status lookup |
 
 JSON errors use `{"error":{"code":"STALE_VERSION","message":"Award changed. Refresh before signing.","fields":{}}}`. Unexpected failures return a safe generic message and correlation ID, with redacted diagnostics. A network failure after submit is UNKNOWN, not an invitation to prepare a replacement payment. Test payload, role, idempotency, sequence contention, and ambiguity cases in Task 4.
+
+
+## Task 3 implementation note
+
+The implemented browser evidence endpoint renders field errors or redirects to the scoped award page after saving. Evidence details (UUID, revision, digest and private preview) are available there; a JSON upload response is not yet exposed. Multi-file downloads use `?file=0`, `?file=1` or `?file=2` (default zero), bounded to that version's ordered files. There is no storage URL in a response. `/awards/<uuid>/review/` accepts the allowlisted review action, `evidence_id`, `expected_version`, `rationale` and `source_check_method`; the request-changes and dispute aliases fix their respective actions. Stale forms return HTTP 409 and a visible refresh warning. Invalid forms return 400. Saved actions remain PENDING until the Task 4 signing/confirmation pipeline exists.

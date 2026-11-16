@@ -1,6 +1,6 @@
 # Local setup and recovery procedures
 
-Status: Task 1 local setup is being implemented and verified. The current baseline has no Soroban contract, evidence upload/download flow, chain transaction workflow, or deployed service. The [system plan](../ProofPay_System_and_Implementation_Plan.md) remains the source for product and chain behavior.
+Status: Task 3 evidence/review flow and styling are implemented locally alongside the Task 2 contract. Chain signing/reconciliation and live deployment remain pending. The system plan remains authoritative.
 
 ## Verified local setup
 
@@ -59,3 +59,12 @@ Use persistent private storage; back up files and their database manifests toget
 ## Hosted or real-user launch
 
 A hosted demo requires explicit destination/provider/budget, HTTPS, secure cookies, persistent storage, backups, safe logs, secrets management and deployment checks. Mainnet/real users require a separately approved scope, real demand evidence, contract/security/privacy/legal review, asset/cash-out decision, operational key recovery, and ongoing ownership. The current authorization covers local implementation only; it does not authorize publishing, paid services, Mainnet, a grant submission or external outreach.
+
+
+## Task 3 local preview
+
+Apply `uv run python manage.py migrate --noinput`, then start `uv run python manage.py runserver 127.0.0.1:8000`. Evidence uses `PRIVATE_EVIDENCE_ROOT`; no public media route exists. Downloads are authenticated attachments, and the award's current verifier controls access. Proposed replacements gain none until Task 4 reconciliation changes that assignment. Files are limited to three PDF/PNG/JPEG uploads of 5 MiB each. Signature validation is not malware scanning.
+
+Evidence stays unsigned until a confirmed chain submission. APPROVE/REJECT/REOPEN requests remain pending, and request-changes/dispute records do not themselves modify the contract. Confirmed evidence revision/digest/ledger fields must be populated by Task 4, never inferred from an upload. SQLite or fake chain confirmations are not used for local acceptance.
+
+The development database contains a labeled synthetic UI preview with three provisioned `preview-` accounts and no contract ID; its database-only Funded status is explicitly unconfirmed. No private keys are retained. This is browser-check data, not the reproducible ten-recipient Testnet demo planned for Task 5. Preview credentials are local-only and are not source-controlled.

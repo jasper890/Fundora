@@ -1,16 +1,1 @@
-<!doctype html>
-<html lang="en">
-  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Programs · ProofPay</title></head>
-  <body>
-    <main>
-      <h1>Programs</h1>
-      {% for membership in memberships %}
-        <section><h2>{{ membership.program.title }}</h2><p>Role: {{ membership.get_role_display }}</p></section>
-      {% empty %}
-        <p>No programs are assigned to this account.</p>
-      {% endfor %}
-      <p><a href="{% url 'password_change' %}">Change password</a></p>
-      <form action="{% url 'logout' %}" method="post">{% csrf_token %}<button type="submit">Sign out</button></form>
-    </main>
-  </body>
-</html>
+{% extends "base.html" %}{% block content %}<h1>Your programs</h1><p class="muted">A shared record of who has done what and who acts next.</p>{% for membership in memberships %}<section><h2>{{ membership.program.title }}</h2><p>{{ membership.get_role_display }}</p><p>{{ membership.program.requirements_text }}</p></section>{% empty %}<section><h2>No programs assigned</h2><p>Your organizer will provide access when your workshop is ready.</p></section>{% endfor %}<h2>Award register</h2>{% for award in awards %}<section class="register"><a href="{% url 'award_detail' award.pk %}">{{ award.program.title }}</a><span>20 Testnet XLM</span><span class="status">{{ award.get_status_display }}</span></section>{% empty %}<p>No awards are assigned to this account yet.</p>{% endfor %}{% endblock %}
