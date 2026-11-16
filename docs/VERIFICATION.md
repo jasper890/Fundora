@@ -28,14 +28,14 @@ At the Task 1 snapshot, no contract invariant suite, private evidence upload/dow
 |---|---|---|---|---|
 | A1: fixed synthetic program and distinct roles | 1, 2, 5 | Ten synthetic recipients; equality of role users/wallets rejected; all amounts 200000000 | `test_permissions`; contract constructor tests; seed verification | PARTIAL: database role checks and Soroban constructor constraints pass; seeded ten-recipient demo is not implemented. |
 | A2: funding actually confirmed | 2, 4, 5 | Exact sponsor/contract token balance change and expected state | Contract fund tests and independent Testnet read/hash | PARTIAL: local bound-token balance/state tests pass; independent Testnet read/hash is NOT RUN. |
-| A3: evidence privacy | 3 | Anonymous/unrelated/old verifier download denied; authorized access succeeds | `test_evidence`, `test_permissions` | PARTIAL: private evidence access, corruption, and confirmed-assignment rotation tests pass locally; live chain rotation remains pending Task 4. |
+| A3: evidence privacy | 3 | Anonymous/unrelated/old verifier download denied; authorized access succeeds | `test_evidence`, `test_permissions`, Task 6 browser suite | PARTIAL: private evidence access, corruption, confirmed-assignment rotation, and local browser denial checks pass; live chain rotation remains pending Task 4. |
 | A4: approve then pay once | 2, 4, 5 | Current verifier approval, sponsor signature, immutable recipient balance increases once | Contract authorization/balance tests and demo transaction records | PARTIAL: local authorization and fixed-recipient payout tests pass; demo transaction evidence is NOT RUN. |
 | A5: invalid payout blocked | 2, 4 | Wrong signer, missing approval, hold, deadline, duplicate and redirect attempts move no funds | Contract negative tests; signed-body mutation tests | PARTIAL: local negative contract tests pass; signed-body mutation, wrong-network/signature and idempotency tests pass locally; live signing is NOT RUN. |
 | A6: stale evidence/rotation invalidated | 2, 3, 4 | Old version rejected; confirmed rotation removes old access; unknown rotation grants none | Named rotation/revision tests and app access tests | PARTIAL: local stale-version, rotation, and reopened-revision tests pass; private evidence access tests pass locally. |
 | A7: expiry recovery | 2, 5 | Every funded unpaid state refunds after cutoff despite holds/missing verifier | Boundary/hold tests; separate expiry Testnet award | PARTIAL: local cutoff and held-refund tests pass; live expiry recovery remains NOT RUN. |
-| A8: unknown outcomes never duplicate | 4, 6 | Timeout stays unknown; concurrent workers/idempotent retries settle once | `test_chain`, browser unknown-state scenario | NOT RUN |
+| A8: unknown outcomes never duplicate | 4, 6 | Timeout stays unknown; concurrent workers/idempotent retries settle once | `test_chain`, browser unknown-state scenario | PARTIAL: local timeout, concurrency/idempotency and browser UNKNOWN-message checks pass; live-network reconciliation evidence remains NOT RUN. |
 | A9: rollback/restart recovery | 2, 4, 5 | Failed token transfer rolls back; restart rebuilds chain snapshots | `test_recovery`, contract rollback tests | PARTIAL: local mock-token rollback passes; concurrent reconciliation and unknown-result tests pass locally; restart/Testnet recovery remains pending Task 5. |
-| A10: reproducible demo and truthful labels | 5, 6 | Setup followed from clean environment; Testnet/synthetic visible; checks and limits recorded | Browser walkthrough; demo record; setup reproduction | NOT RUN: Task 1 clean installs/build pass; full demo not implemented. |
+| A10: reproducible demo and truthful labels | 5, 6 | Setup followed from clean environment; Testnet/synthetic visible; checks and limits recorded | Browser walkthrough; demo record; setup reproduction | PARTIAL: local browser setup and synthetic labels are covered; the ten-recipient Testnet demonstration and outside usability sessions are NOT RUN. |
 
 ## Proposed commands
 
@@ -144,4 +144,25 @@ Branch `implementation/task-5-recovery-demo`, based on `185169a`. Added settleme
 - NOT RUN: controlled archived-state restoration and live TTL extension. Mocked/native checks do not establish that behavior on a live network.
 - NOT RUN: seeded Testnet funding, evidence submission, independent verifier approval, payout, duplicate rejection, and held expiry refund. No upload, deployment, or transaction was sent. The live flow needs twelve distinct sponsor/verifier/recipient public G-addresses and separate explicit authorization for network writes.
 
-Recovery keeps award identity and unknown operations when chain state is unavailable or regresses; it never infers a fresh unpaid award or redeploys. Export omits private evidence and signing envelopes, and formula-like CSV text is escaped. Purge previews eligible counts and only removes evidence after a Paid/Refunded settlement has been observed for more than 30 days. Task 5 remains open until its controlled archival and live Testnet checks have actual evidence. Task 6 usability and handoff evidence remains next.
+Recovery keeps award identity and unknown operations when chain state is unavailable or regresses; it never infers a fresh unpaid award or redeploys. Export omits private evidence and signing envelopes, and formula-like CSV text is escaped. Purge previews eligible counts and only removes evidence after a Paid/Refunded settlement has been observed for more than 30 days. Task 5 remains open until its controlled archival and live Testnet checks have actual evidence. Task 6 local browser coverage and open handoff gates are recorded below.
+
+## Task 6 local browser checkpoint — 16 November 2026
+
+The Task 6 browser suite uses pinned development dependency Playwright 1.64.1 with Chromium 156.0.8078.4. Django `StaticLiveServerTestCase` serves the generated bundle in the isolated test server; the tests create only synthetic role accounts, use a temporary evidence directory and use no wallet/RPC credentials.
+
+- PASSED: `uv sync --locked`; `uv pip check --python .venv/Scripts/python.exe` — lock is consistent and installed packages are compatible.
+- PASSED: `uv run playwright install chromium` — Chromium 156.0.8078.4 and its headless shell installed for Playwright 1.64.1.
+- PASSED: `uv run python manage.py test proofpay.tests --noinput --verbosity=1` — 53 app tests.
+- PASSED: `uv run python manage.py test tests.e2e.test_stipend_flow --noinput --verbosity=1` — four browser tests; sponsor/verifier/recipient role controls, anonymous/unrelated evidence denial, keyboard preview-to-sign focus with no submit, and an UNKNOWN response that remains unconfirmed.
+- PASSED: `cargo test --manifest-path contracts/award/Cargo.toml --locked` — 28 contract tests.
+- PASSED: `npm.cmd run build` and `node --test tests/wallet_validation.test.mjs` — bundle build and three account/network boundary tests.
+- PASSED: `npm.cmd ci` — nine locked packages installed; npm reported zero vulnerabilities. Its esbuild install-script warning is documented in the Task 1 checkpoint; the locked binary builds successfully.
+- PASSED: `uv run python manage.py check` and `uv run python manage.py makemigrations --check --dry-run` — no framework issues or missing migrations.
+- PASSED: Python `pip-audit` over `uv export --locked` requirements — no known vulnerabilities; `npm.cmd audit --audit-level=high` — zero vulnerabilities.
+- PASSED: `npx.cmd --yes @fission-ai/openspec@2.0.0 validate --all --strict` — all six changes passed.
+- PASSED: browser bundle response returned HTTP 200 from the test server. An initial test attempt found that plain `LiveServerTestCase` does not serve assets through Django's staticfiles finders; switching to `StaticLiveServerTestCase` corrected the test server setup. No production routes/settings changed.
+- NOT RUN: `python manage.py check --deploy` with staging settings; the worktree has only local settings and no staging configuration.
+- NOT RUN: two outside usability sessions; no testers were contacted.
+- NOT RUN: full Testnet funding/submission/approval/payout/duplicate/refund demo, controlled archive restoration/TTL extension, and demo video. The 12-address setup was explicitly deferred; no network writes were made.
+
+See [DEMO_RECORD.md](DEMO_RECORD.md) for clean local setup steps and the outside-tester scenario. Task 6 remains incomplete until the outside usability gate and the documented handoff requirements are actually met. Task 5 also remains incomplete without real evidence for its recovery and Testnet gates.

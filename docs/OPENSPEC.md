@@ -15,7 +15,7 @@ The `.cmd` form works in Windows PowerShell without changing script execution po
 
 ## Starting work
 
-The user authorized implementation of the six-task plan on 16 November 2026. Task 1 is active in an isolated worktree. Read the required handoff sources, then continue `task-1-application-boundary`; its implementation checklist records verified work and open gates.
+The user authorized implementation of the six-task plan on 16 November 2026. Continue the task the user selected in the active implementation worktree; keep Task 1 wallet/deployment-preparation gates and Task 5 Testnet/archive gates visible as open where they lack evidence. The current `dev` branch tracks Task 6 in `openspec/changes/task-6-usability-handoff`; its local browser results and outside/network follow-ups are recorded in [verification](VERIFICATION.md).
 
 Codex can invoke `$openspec-apply-change task-1-application-boundary`; Claude can use `/openspec-apply-change task-1-application-boundary`. Plain-language requests also work. Deployment, spending, publishing, Mainnet, real funds, grant submission and outreach retain separate authorization gates.
 
@@ -28,7 +28,7 @@ During implementation, keep task progress and docs/VERIFICATION.md aligned with 
 ```powershell
 $env:OPENSPEC_TELEMETRY='0'
 npx.cmd --yes @fission-ai/openspec@2.0.0 validate --all --strict
-npx.cmd --yes @fission-ai/openspec@2.0.0 status --change task-1-application-boundary
+npx.cmd --yes @fission-ai/openspec@2.0.0 status --change task-6-usability-handoff
 ```
 
 Task 2 covers contract invariants; Task 3 private evidence; Task 4 signing and reconciliation; Task 5 recovery and audit; Task 6 usability and handoff. Their detailed requirements remain in the system plan. Future CLI upgrades must be deliberate and generated guidance reviewed against project rules.

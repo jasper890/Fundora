@@ -1,6 +1,6 @@
 # Local setup and recovery procedures
 
-Status: Tasks 2-5 have local implementations. Task 5 recovery, audit/export, synthetic seeding and retention procedures are implemented and locally verified; controlled archival restoration and the full Testnet flow remain open. Task 6 remains. The system plan remains authoritative.
+Status: Tasks 2-5 have local implementations. Task 5 recovery, audit/export, synthetic seeding and retention procedures are implemented and locally verified; controlled archival restoration and the full Testnet flow remain open. Task 6 adds local browser coverage; outside usability sessions and the full Task 6 handoff remain open. The system plan remains authoritative.
 
 ## Verified local setup
 
@@ -30,7 +30,7 @@ The Django development secret fallback is enabled only while `DEBUG` is true. Wi
 - The Python and browser dependency locks, TypeScript build, package audits, Django permission tests, framework check, and migration consistency check are recorded in [verification](VERIFICATION.md).
 - `@stellar/freighter-api` 6.0.1 compiles into the local browser bundle. The user confirms Varial is installed in Brave and Test Net is selected. The app's `/wallet-check/` connection probe and signing paths have not been exercised. Do not ask for or record a recovery phrase or private key.
 - Wrong-token, wrong-network, and wrong-code-hash preparation rejection tests now pass locally in Task 4. Live wallet signing/deployment validation remains open. No deployment is authorized by setup work.
-- `python manage.py check --deploy`, persistent evidence restore, private upload/download, and browser workflow checks remain future task gates.
+- `python manage.py check --deploy` with staging settings and persistent evidence restore remain open. The Task 6 synthetic browser workflow is documented in [DEMO_RECORD.md](DEMO_RECORD.md); it is separate from Testnet signing and outside usability sessions.
 
 ## Unknown transaction
 

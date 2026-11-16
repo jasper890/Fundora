@@ -1,6 +1,6 @@
 # Third-party dependency notices
 
-Task 1 inventory recorded 16 November 2026 from `uv.lock`, installed Python distribution metadata, `package-lock.json`, and npm package metadata. Version locks are authoritative; recheck licenses before public distribution.
+Task 1 inventory recorded 16 November 2026 from `uv.lock`, installed Python distribution metadata, `package-lock.json`, and npm package metadata; Task 6 browser-test dependencies are listed separately. Version locks are authoritative; recheck licenses before public distribution. Playwright is a development-only browser test dependency, not shipped application code.
 
 No third-party application source code was copied or adapted for this baseline. The separately installed agent skills retain their own upstream license files. Preserve the OpenSpec notice at [docs/OPENSPEC_LICENSE.txt](docs/OPENSPEC_LICENSE.txt). Later adapted Soroban snippets must record the pinned source, path, revision, changes, and required notice here.
 
@@ -31,6 +31,14 @@ No third-party application source code was copied or adapted for this baseline. 
 | tzdata | 2026.6 | Apache-2.0 |
 | urllib3 | 2.8.0 | MIT |
 | xdrlib3 | 0.1.1 | Apache Software License (package metadata) |
+
+## Browser automation (development only)
+
+| Package | Version | License metadata/files |
+|---|---:|---|
+| playwright | 1.64.1 | Apache-2.0 (`LICENSE`) |
+| greenlet | 3.5.6 | MIT and PSF-derived source notices (`LICENSE`, `LICENSE.PSF`) |
+| pyee | 14.0.0 | MIT |
 
 ## Browser bundle and build packages
 
