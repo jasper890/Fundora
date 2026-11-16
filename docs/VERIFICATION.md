@@ -1,6 +1,6 @@
 # Verification and completion evidence
 
-Status: Task 1 local baseline evidence recorded; Task 2 contract work is in progress; acceptance criteria A1-A10 remain incomplete. Historical upstream example results in the [repository report](../ProofPay_Repository_Validation.md) are not ProofPay test results. The [system plan](../ProofPay_System_and_Implementation_Plan.md) remains authoritative.
+Status: Task 1 local baseline evidence recorded; Task 2 contract implementation and local release verification are complete; live Testnet, archival recovery, private evidence, application integration, and acceptance criteria A1-A10 remain incomplete. Historical upstream example results in the [repository report](../ProofPay_Repository_Validation.md) are not ProofPay test results. The [system plan](../ProofPay_System_and_Implementation_Plan.md) remains authoritative.
 
 ## Task 1 implementation record — 16 November 2026
 
@@ -20,21 +20,21 @@ Working snapshot: commit `c70cf04` on branch `implementation/task-1-app-boundary
 | `npm audit` | PASSED | 0 vulnerabilities. |
 | Dependency license inventory | PASSED | [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) lists locked Python/browser package licenses. No upstream app or contract source was adapted in Task 1. |
 
-**Open gates:** Freighter 6.0.1's build/type surface is verified, but the manual Testnet signing probe is **NOT RUN**; Freighter was not found in the checked Chrome/Edge profiles, and no user-controlled wallet signature was requested. Deployment-preparation checks for wrong token, network, and WASM code hash are **NOT RUN** because the contract/code hash and Task 4 preparation handler do not exist yet. No Testnet deployment or network transaction occurred. These gaps do not prove wallet compatibility; resolve them before enabling a live Testnet flow.
+**Open gates at the Task 1 checkpoint:** Freighter 6.0.1's build/type surface was verified, but the manual Testnet signing probe was **NOT RUN**; Freighter was not found in the checked Chrome/Edge profiles, and no user-controlled wallet signature was requested. Deployment-preparation checks for wrong token, network, and WASM code hash were **NOT RUN** because the contract/hash and Task 4 preparation handler did not exist then. Task 2 has since produced a local WASM hash; the preparation handler and wallet probe are still open. No Testnet deployment or network transaction occurred.
 
-This record covers only Task 1's local baseline. No contract invariant suite, private evidence upload/download, chain action, real Testnet balance check, browser end-to-end run, outside usability test, hosted deployment, or customer pilot has passed. Commit `c70cf04` is the independently testable local baseline; Task 1's open gates remain open.
+At the Task 1 snapshot, no contract invariant suite, private evidence upload/download, chain action, real Testnet balance check, browser end-to-end run, outside usability test, hosted deployment, or customer pilot had passed. Commit `c70cf04` is the independently testable local baseline; Task 1's wallet and deployment-preparation gates remain open.
 
 | Scope criterion | Owner task | Minimum proof | Planned checks | Current result |
 |---|---|---|---|---|
-| A1: fixed synthetic program and distinct roles | 1, 2, 5 | Ten synthetic recipients; equality of role users/wallets rejected; all amounts 200000000 | `test_permissions`; contract constructor tests; seed verification | NOT RUN: database role and fixed-amount constraints pass; no seeded ten-recipient demo yet. |
-| A2: funding actually confirmed | 2, 4, 5 | Exact sponsor/contract token balance change and expected state | Contract fund tests and independent Testnet read/hash | NOT RUN |
+| A1: fixed synthetic program and distinct roles | 1, 2, 5 | Ten synthetic recipients; equality of role users/wallets rejected; all amounts 200000000 | `test_permissions`; contract constructor tests; seed verification | PARTIAL: database role checks and Soroban constructor constraints pass; seeded ten-recipient demo is not implemented. |
+| A2: funding actually confirmed | 2, 4, 5 | Exact sponsor/contract token balance change and expected state | Contract fund tests and independent Testnet read/hash | PARTIAL: local bound-token balance/state tests pass; independent Testnet read/hash is NOT RUN. |
 | A3: evidence privacy | 3 | Anonymous/unrelated/old verifier download denied; authorized access succeeds | `test_evidence`, `test_permissions` | NOT RUN: page access tests pass; private evidence routes are not implemented. |
-| A4: approve then pay once | 2, 4, 5 | Current verifier approval, sponsor signature, immutable recipient balance increases once | Contract authorization/balance tests and demo transaction records | NOT RUN |
-| A5: invalid payout blocked | 2, 4 | Wrong signer, missing approval, hold, deadline, duplicate and redirect attempts move no funds | Contract negative tests; signed-body mutation tests | NOT RUN: application staff role denial passes; no contract or signing pipeline yet. |
-| A6: stale evidence/rotation invalidated | 2, 3, 4 | Old version rejected; confirmed rotation removes old access; unknown rotation grants none | Named rotation/revision tests and app access tests | NOT RUN |
-| A7: expiry recovery | 2, 5 | Every funded unpaid state refunds after cutoff despite holds/missing verifier | Boundary/hold tests; separate expiry Testnet award | NOT RUN |
+| A4: approve then pay once | 2, 4, 5 | Current verifier approval, sponsor signature, immutable recipient balance increases once | Contract authorization/balance tests and demo transaction records | PARTIAL: local authorization and fixed-recipient payout tests pass; demo transaction evidence is NOT RUN. |
+| A5: invalid payout blocked | 2, 4 | Wrong signer, missing approval, hold, deadline, duplicate and redirect attempts move no funds | Contract negative tests; signed-body mutation tests | PARTIAL: local negative contract tests pass; signed-body mutation tests are pending Task 4. |
+| A6: stale evidence/rotation invalidated | 2, 3, 4 | Old version rejected; confirmed rotation removes old access; unknown rotation grants none | Named rotation/revision tests and app access tests | PARTIAL: local stale-version, rotation, and reopened-revision tests pass; private evidence access tests are pending Task 3. |
+| A7: expiry recovery | 2, 5 | Every funded unpaid state refunds after cutoff despite holds/missing verifier | Boundary/hold tests; separate expiry Testnet award | PARTIAL: local cutoff and held-refund tests pass; live expiry recovery remains NOT RUN. |
 | A8: unknown outcomes never duplicate | 4, 6 | Timeout stays unknown; concurrent workers/idempotent retries settle once | `test_chain`, browser unknown-state scenario | NOT RUN |
-| A9: rollback/restart recovery | 2, 4, 5 | Failed token transfer rolls back; restart rebuilds chain snapshots | `test_recovery`, contract rollback tests | NOT RUN |
+| A9: rollback/restart recovery | 2, 4, 5 | Failed token transfer rolls back; restart rebuilds chain snapshots | `test_recovery`, contract rollback tests | PARTIAL: local mock-token rollback passes; application restart/reconciliation tests remain pending. |
 | A10: reproducible demo and truthful labels | 5, 6 | Setup followed from clean environment; Testnet/synthetic visible; checks and limits recorded | Browser walkthrough; demo record; setup reproduction | NOT RUN: Task 1 clean installs/build pass; full demo not implemented. |
 
 ## Proposed commands
@@ -75,3 +75,19 @@ Working snapshot: branch `implementation/task-2-award-contract`, following pushe
 | `stellar network settings --network testnet --output json-formatted` | NOT RUN for compatibility evidence | The read-only response warned Testnet protocol 30 while Stellar CLI 28.1.0 supports protocol 28 and said the returned configuration may be incomplete. No TTL constants were selected from it, and no Testnet transaction was sent. |
 
 The native suite uses G-address account fixtures from `MuxedAddress::generate`, checks the constructor's recorded sponsor authorization, inspects successful account auth trees, and rejects calls with a specific wrong-signer mock. SDK 28's contract-registration test helper records constructor auth rather than testing its denial path; a signed deployment check is not attempted here. The mock token is test-only and does not prove live SAC behavior. Live Testnet compatibility and archive restoration remain later-phase gates.
+
+## Task 2 implementation checkpoint - 16 November 2026
+
+Working snapshot: Task 2 branch after `57331b4`, with the contract implementation and final verification in this checkpoint. Tool versions: Rust/Cargo 1.99.1, Soroban SDK 28.0.0, Stellar CLI 30.0.1, target `wasm32v1-none`. Stellar CLI was upgraded from 28.1.0 to 30.0.1 because Testnet is on protocol 30. The updated read-only `stellar network settings --network testnet --output json-formatted` completed without a compatibility warning and reported `state_archival.max_entry_ttl = 3110400` and `min_persistent_ttl = 120960`. The contract extends instance/code TTL when below 120960 ledgers to 1000000 ledgers, including construction, business writes, and the permissionless extension method. Recheck these values before deployment.
+
+| Check | Result | Evidence |
+|---|---|---|
+| `cargo test --manifest-path contracts/award/Cargo.toml --locked` | PASSED | 26 native contract tests passed; includes one-time bound-token funding, fixed-recipient payout, post-cutoff refund, rollback, wrong-signer, deadline, hold, rotation, appeal, TTL extension, missing-state, and lifecycle event checks. |
+| `cargo fmt --manifest-path contracts/award/Cargo.toml` | PASSED | Applied formatting before the passing test run. |
+| `cargo fmt --manifest-path contracts/award/Cargo.toml -- --check` | PASSED | Formatting check completed without differences. |
+| `cargo clippy --manifest-path contracts/award/Cargo.toml --all-targets -- -D warnings` | PASSED | All targets linted with warnings treated as errors. |
+| `$env:CARGO_HOME = (cmd.exe /c 'for %I in ("%USERPROFILE%\.cargo") do @echo %~sI'); stellar contract build --manifest-path contracts/award/Cargo.toml --locked` | PASSED | Stellar CLI 30.0.1 built and optimized a 12,854-byte WASM. CLI and `Get-FileHash -Algorithm SHA256` both reported `bfc28602f0461cf447c72c44e31c70da9ca11965e66f51e3ec1d60be99db40d8`. The short-path Cargo home enabled the CLI's dependency path remapping. |
+| `npx.cmd --yes @fission-ai/openspec@2.0.0 validate task-2-award-contract --strict` | PASSED | Task 2 change validated after its spec/task updates. |
+| Testnet transaction or archival restoration | NOT RUN | No transaction was sent; native tests do not prove live SAC behavior or archive restoration. |
+
+Implementation follows the system plan's rule that an `Approved` or `Rejected` award must be reopened by the current verifier before the recipient can submit the next revision. The contract uses an internal verifier/revision/digest approval record, emits public history events without private evidence, checks expected versions before authorization or side effects, and maps any bound-token transfer failure to a rollback-triggering contract error. The local mock proves atomic rollback only against the test token. Task 2 has not been deployed, uploaded, or audited.

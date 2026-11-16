@@ -48,11 +48,11 @@ Every post-construction mutation SHALL require the role authorized for that acti
 
 ### Requirement: Evidence revisions bind approval to current evidence
 
-Only the recipient SHALL submit evidence to a funded, submitted, or reopened award at or before the claim deadline. Each revision SHALL be the previous revision plus one and have a nonzero digest. A new revision SHALL clear prior approval. Only the current verifier SHALL approve the current submitted revision by the review deadline when neither hold is active.
+Only the recipient SHALL submit evidence to a funded or submitted award at or before the claim deadline. An `Approved` or `Rejected` award SHALL first be reopened by the current verifier. Each revision SHALL be the previous revision plus one and have a nonzero digest. Submission SHALL leave approval cleared. Only the current verifier SHALL approve the current submitted revision by the review deadline when neither hold is active.
 
-#### Scenario: New evidence invalidates approval
-- **WHEN** the recipient submits a higher evidence revision after approval
-- **THEN** state SHALL return to `Submitted` and the prior approval SHALL no longer authorize payment
+#### Scenario: New evidence follows reopening of approval
+- **WHEN** the current verifier reopens an approved award and the recipient submits the next evidence revision
+- **THEN** state SHALL remain `Submitted` and the previous approval SHALL not authorize payment
 
 #### Scenario: Missing funds or invalid revision
 - **WHEN** evidence is submitted before funding, with a skipped or repeated revision, or with a zero digest

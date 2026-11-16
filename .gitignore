@@ -8,6 +8,7 @@ private_evidence/
 node_modules/
 static/proofpay/wallet.js
 target/
+contracts/award/test_snapshots/
 .pytest_cache/
 .ruff_cache/
 coverage.xml

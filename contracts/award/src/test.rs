@@ -6,7 +6,8 @@ use super::*;
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype,
     testutils::{
-        Address as _, AuthorizedFunction, Ledger as _, MockAuth, MockAuthInvoke, MuxedAddress as _,
+        storage::Instance as _, Address as _, AuthorizedFunction, Events as _, Ledger as _,
+        MockAuth, MockAuthInvoke, MuxedAddress as _,
     },
     Address, BytesN, Env, IntoVal, MuxedAddress, Val, Vec,
 };
@@ -204,6 +205,7 @@ fn account(env: &Env) -> Address {
     MuxedAddress::generate(env).address()
 }
 
+#[allow(clippy::too_many_arguments)]
 fn register_award(
     env: &Env,
     sponsor: Address,
@@ -439,6 +441,36 @@ fn fund_moves_exact_amount_at_claim_deadline() {
     fixture.env.ledger().set_timestamp(1_100);
     fixture.fund(0);
 
+    let auths = fixture.env.auths();
+    assert_eq!(auths.len(), 1);
+    assert_eq!(auths[0].0, fixture.sponsor);
+    match &auths[0].1.function {
+        AuthorizedFunction::Contract((address, function, args)) => {
+            assert_eq!(address, &fixture.contract);
+            assert_eq!(function, &soroban_sdk::Symbol::new(&fixture.env, "fund"));
+            assert_eq!(args, &(0u64,).into_val(&fixture.env));
+        }
+        _ => panic!("fund auth must name the award contract function"),
+    }
+    assert_eq!(auths[0].1.sub_invocations.len(), 1);
+    match &auths[0].1.sub_invocations[0].function {
+        AuthorizedFunction::Contract((address, function, args)) => {
+            assert_eq!(address, &fixture.token);
+            assert_eq!(
+                function,
+                &soroban_sdk::Symbol::new(&fixture.env, "transfer")
+            );
+            let transfer_args: Vec<Val> = (
+                fixture.sponsor.clone(),
+                MuxedAddress::from(fixture.contract.clone()),
+                AWARD_AMOUNT,
+            )
+                .into_val(&fixture.env);
+            assert_eq!(args, &transfer_args);
+        }
+        _ => panic!("fund auth must include the bound token transfer"),
+    }
+
     assert_eq!(
         MockTokenClient::new(&fixture.env, &fixture.token).balance(&fixture.sponsor),
         0
@@ -453,10 +485,6 @@ fn fund_moves_exact_amount_at_claim_deadline() {
     );
     assert_eq!(fixture.client().get_state().status, Status::Funded);
     assert_eq!(fixture.client().get_state().version, 1);
-
-    let auths = fixture.env.auths();
-    assert_eq!(auths.len(), 1);
-    assert_eq!(auths[0].0, fixture.sponsor);
 }
 
 #[test]
@@ -551,11 +579,12 @@ fn evidence_revision_invalidates_old_approval() {
     fixture.approve(2);
     assert!(fixture.client().get_state().approved);
 
-    fixture.submit(2, &second_digest, 3);
+    fixture.reopen(3);
+    fixture.submit(2, &second_digest, 4);
     let before = MockTokenClient::new(&fixture.env, &fixture.token).balance(&fixture.contract);
     fixture.mock_all_auths();
     assert!(matches!(
-        fixture.client().try_pay(&4),
+        fixture.client().try_pay(&5),
         Err(Ok(Error::InvalidState))
     ));
 
@@ -701,6 +730,49 @@ fn archival_is_not_reinitialization() {
         MockTokenClient::new(&fixture.env, &fixture.token).balance(&fixture.contract),
         before_contract
     );
+}
+
+#[test]
+fn lifetime_extension_preserves_award_state() {
+    let fixture = Fixture::new();
+    let initial = fixture.env.as_contract(&fixture.contract, || {
+        fixture.env.storage().instance().get_ttl()
+    });
+    assert!(initial >= 1_000_000);
+
+    fixture.env.ledger().set_sequence_number(900_000);
+    fixture.client().extend_lifetime();
+
+    let extended = fixture.env.as_contract(&fixture.contract, || {
+        fixture.env.storage().instance().get_ttl()
+    });
+    assert!(extended >= 1_000_000);
+    let state = fixture.client().get_state();
+    assert_eq!(state.status, Status::Created);
+    assert_eq!(state.version, 0);
+}
+
+#[test]
+fn lifecycle_mutations_emit_public_history_events() {
+    let fixture = Fixture::new();
+    let digest = BytesN::from_array(&fixture.env, &[20; 32]);
+    fixture.fund(0);
+    assert_one_history_event(&fixture);
+    fixture.submit(1, &digest, 1);
+    assert_one_history_event(&fixture);
+    fixture.approve(2);
+    assert_one_history_event(&fixture);
+    fixture.pay(3);
+    assert_one_history_event(&fixture);
+}
+
+fn assert_one_history_event(fixture: &Fixture) {
+    let events = fixture
+        .env
+        .events()
+        .all()
+        .filter_by_contract(&fixture.contract);
+    assert_eq!(events.events().len(), 1);
 }
 
 #[test]
