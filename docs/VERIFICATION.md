@@ -131,11 +131,13 @@ Task 4 local completion checkpoint: 44 app tests, 26 unchanged contract tests, t
 
 Branch `implementation/task-5-recovery-demo`, based on `185169a`. Added settlement and deployment-recovery fields, guarded verified-state refresh, preview-first evidence retention, role-scoped program/audit screens, JSON/CSV exports, a ten-recipient seed command and Task 5 operational instructions. The contract production code did not change; two contract boundary tests extend expiry and held-refund coverage.
 
-- PASSED: `uv run python manage.py test proofpay.tests --noinput` — 52 app tests.
+- PASSED: `uv run python manage.py test proofpay.tests --noinput` — 53 app tests.
 - PASSED: `cargo test --manifest-path contracts/award/Cargo.toml --locked` — 28 contract tests.
 - PASSED: `npm.cmd run build` and `node --test tests/wallet_validation.test.mjs` — browser bundle and three account/network boundary tests.
 - PASSED: `uv run python manage.py check`; `uv run python manage.py makemigrations --check --dry-run` — no framework issues and no missing migration. Migration 0006 was applied to the local database.
 - PASSED: `npx.cmd --yes @fission-ai/openspec@2.0.0 validate task-5-recovery-demo --strict`.
+- PASSED: Playwright in an isolated browser context logged in as recipient, verifier and sponsor. The program list and award detail showed the unconfirmed chain state; the recipient saw evidence/review request controls, the verifier saw source-check controls, and the sponsor saw private export links. Sponsor CSV and JSON exports both returned HTTP 200 with private/no-store headers and no private evidence or signing-envelope fields. The award audit rendered. No evidence was downloaded or changed, and no chain action was signed or submitted. Browser console reported no errors.
+- PASSED: a regression test first failed because the program list displayed the stale database `Funded` value, then passed after it displayed `Not confirmed on-chain` when no confirmed ledger exists.
 - NOT RUN: Ruff lint; Ruff is not installed in the locked project environment (`uv run ruff` could not find the executable). No project dependency was added for this optional check.
 - User reports Varial is installed in Brave and Test Net is selected. NOT RUN: the local `/wallet-check/` connection probe, wallet signing/cancellation/wrong-network check, and full browser workflow.
 - NOT RUN: controlled archived-state restoration and live TTL extension. Mocked/native checks do not establish that behavior on a live network.

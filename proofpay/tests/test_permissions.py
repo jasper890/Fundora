@@ -58,6 +58,15 @@ class AwardPermissionTests(TestCase):
                 response = self.client.get(url)
                 self.assertRedirects(response, f"/login/?next={url}", fetch_redirect_response=False)
 
+    def test_program_list_does_not_label_unconfirmed_award_as_funded(self):
+        self.award.status = Award.Status.FUNDED
+        self.award.save(update_fields=("status",))
+        self.client.force_login(self.recipient)
+
+        response = self.client.get(reverse("program_list"))
+
+        self.assertContains(response, "Not confirmed on-chain")
+
     def test_unrelated_program_participant_gets_404(self):
         unrelated = User.objects.create_user("unrelated")
         unrelated_member = self.member(unrelated, ProgramMember.Role.RECIPIENT)
