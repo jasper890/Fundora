@@ -1,0 +1,56 @@
+{% load static %}
+<section id="{% if is_sponsor %}award-action{% else %}award-wallet{% endif %}" data-chain-workspace data-prepare-base="/awards/{{ award.pk }}/prepare/" data-version="{{ award.version }}" data-evidence-id="{{ latest.pk }}">
+  <h2>Wallet actions</h2>
+  <p>The assigned wallet signs each action. Submission and payment are confirmed separately by Stellar.</p>
+  <form data-prepare>
+    {% csrf_token %}
+    <p>
+      <label for="chain-action">Action to review</label>
+      <select name="action" id="chain-action">
+        {% for value, label in chain_action_choices %}
+          <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </p>
+    <p>
+      <label for="chain-held">For hold changes</label>
+      <select id="chain-held" name="held">
+        <option value="true">Set my hold</option>
+        <option value="false">Clear my hold</option>
+      </select>
+    </p>
+    <p>
+      <label for="chain-verifier">For verifier replacement</label>
+      <select id="chain-verifier" name="new_verifier_member_id">
+        <option value="">Choose a provisioned verifier</option>
+        {% for member in replacement_verifiers %}
+          <option value="{{ member.pk }}">{{ member.user.username }}</option>
+        {% endfor %}
+      </select>
+    </p>
+    {% if chain_action_choices %}
+      <button>Prepare action preview</button>
+    {% else %}
+      <p>No new action is available for this role or while an operation is unresolved.</p>
+    {% endif %}
+  </form>
+  <p data-chain-message role="status" aria-live="polite"></p>
+  <button type="button" class="secondary" data-refresh-current>Refresh current operation</button>
+  <div data-preview hidden>
+    <h3>Review before signing</h3>
+    <dl data-preview-details class="identifier"></dl>
+    <p>PAY: contract to the fixed recipient. FUND: sponsor to contract. REFUND: contract to original sponsor. Other actions do not release the stipend.</p>
+    <button type="button" data-sign>Sign this action in Freighter</button>
+    <button type="button" class="secondary" data-cancel>Cancel unsigned request</button>
+  </div>
+  <h3>Operation history</h3>
+  {% for operation in chain_operations %}
+    <article>
+      <p>{{ operation.action }}: {{ operation.status }}</p>
+      <button type="button" class="secondary" data-refresh-operation="{{ operation.pk }}">Refresh status</button>
+    </article>
+  {% empty %}
+    <p>No chain operations prepared.</p>
+  {% endfor %}
+</section>
+<script type="module" src="{% static 'proofpay/wallet.js' %}"></script>

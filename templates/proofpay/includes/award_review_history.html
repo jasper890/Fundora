@@ -1,0 +1,15 @@
+<section id="award-review-history">
+  <h2>Review history</h2>
+  <ol class="timeline">
+    {% for review in reviews %}
+      <li>
+        <strong>{{ review.get_action_display }}</strong>
+        <p>Revision {{ review.evidence.revision }} / {{ review.status }}</p>
+        <p>{{ review.rationale|linebreaksbr }}</p>
+        <p class="muted">{{ review.created_at|date:"j M Y H:i" }} UTC. {% if review.status == "CONFIRMED" %}Decision confirmed on Stellar.{% else %}Recorded request; no chain confirmation.{% endif %}</p>
+      </li>
+    {% empty %}
+      <li>No review requests recorded.</li>
+    {% endfor %}
+  </ol>
+</section>

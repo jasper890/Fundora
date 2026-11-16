@@ -171,3 +171,37 @@ class PresentationCopyTests(TestCase):
         self.assertNotContains(response, "Paid")
         self.assertNotContains(response, "private_evidence")
         self.assertNotContains(response, "storage_name")
+
+    def test_award_page_keeps_role_headings_and_wallet_hooks(self):
+        self.confirm(Award.Status.FUNDED)
+        self.award.evidence_versions.create(
+            revision=1,
+            explanation="Synthetic completion",
+            source_ref="Organizer register",
+            digest="b" * 64,
+            nonce="m" * 32,
+            manifest="{}",
+            author=self.recipient,
+        )
+
+        self.client.force_login(self.recipient)
+        recipient_page = self.client.get(reverse("award_detail", args=(self.award.pk,)))
+        self.assertContains(recipient_page, "Add a new evidence revision")
+        self.assertContains(recipient_page, "Request a review")
+        self.assertContains(recipient_page, "Wallet actions")
+        self.assertContains(recipient_page, 'data-sign')
+        self.assertContains(recipient_page, 'data-cancel')
+        self.assertContains(recipient_page, "Prepare action preview")
+
+        self.client.force_login(self.verifier)
+        verifier_page = self.client.get(reverse("award_detail", args=(self.award.pk,)))
+        self.assertContains(verifier_page, "Review revision 1")
+        self.assertContains(verifier_page, "Original source checked")
+        body = verifier_page.content.decode()
+        self.assertLess(body.index("Review revision 1"), body.index("Completion evidence"))
+
+        self.client.force_login(self.sponsor)
+        sponsor_page = self.client.get(reverse("award_detail", args=(self.award.pk,)))
+        self.assertContains(sponsor_page, "Wallet actions")
+        body = sponsor_page.content.decode()
+        self.assertLess(body.index("Wallet actions"), body.index("Completion evidence"))

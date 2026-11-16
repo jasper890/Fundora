@@ -1,0 +1,9 @@
+<a href="{% url 'program_list' %}">Back to programs</a>
+<h1 class="program-title">{{ award.program.title }}</h1>
+<p><a href="{% url 'award_audit' award.pk %}">View audit record</a></p>
+<p class="amount">20 <span>Testnet XLM</span></p>
+{% include "proofpay/includes/status.html" with lines=status_lines %}
+{% include "proofpay/includes/next_step.html" with step=next_step %}
+{% if award.deployment_error %}
+<p class="notice">Deployment state unavailable ({{ award.deployment_error }}). Prior records are preserved; investigate before signing.</p>
+{% endif %}

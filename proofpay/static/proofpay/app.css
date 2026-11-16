@@ -257,10 +257,22 @@ form p {
   font-weight: 600;
 }
 
-.workspace {
+.workspace,
+.award-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
   gap: var(--space-5);
+  align-items: start;
+}
+
+.award-aside .tracker {
+  margin: 0;
+  position: sticky;
+  top: var(--space-5);
+}
+
+.award-history {
+  margin-top: var(--space-6);
 }
 
 .identifier {
@@ -484,9 +496,22 @@ input[type=checkbox] {
     padding: var(--space-5) var(--space-4);
   }
 
-  .workspace {
+  .workspace,
+  .award-workspace {
     grid-template-columns: 1fr;
-    gap: 0;
+    gap: var(--space-5);
+  }
+
+  .award-aside .tracker {
+    position: static;
+  }
+
+  .award-aside {
+    order: 2;
+  }
+
+  .award-primary {
+    order: 1;
   }
 
   .register {

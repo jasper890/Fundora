@@ -104,6 +104,10 @@ def award_context(request, award, form=None):
         award.verifier_member.user_id == request.user.pk
         and award.verifier_member.active
     )
+    sponsor = (
+        award.sponsor_member.user_id == request.user.pk
+        and award.sponsor_member.active
+    )
     return {
         "award": award,
         "replacement_verifiers": award.program.members.filter(
@@ -121,9 +125,11 @@ def award_context(request, award, form=None):
         "reviews": award.review_actions.select_related("evidence"),
         "is_recipient": recipient,
         "is_verifier": verifier,
+        "is_sponsor": sponsor,
         "status_lines": status_lines(award),
         "next_step": next_step(award, request.user),
         "tracker_steps": tracker_steps(award),
+        "review_values": {"source_check_method": "", "rationale": ""},
         "form": form
         or EvidenceForm(
             initial={"expected_revision": latest.revision if latest else 0}

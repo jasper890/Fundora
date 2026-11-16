@@ -1,0 +1,18 @@
+{% load tz %}
+<section id="award-terms">
+  <h2>Your award terms</h2>
+  <p>{{ terms.requirements_text }}</p>
+  <dl>
+    <dt>Assigned recipient wallet</dt>
+    <dd class="identifier">{{ award.recipient_member.public_wallet }}</dd>
+    {% timezone "Asia/Singapore" %}
+    <dt>Evidence deadline</dt>
+    <dd>{{ terms.claim_deadline|date:"j M Y, H:i" }} Asia/Singapore</dd>
+    <dt>Review deadline</dt>
+    <dd>{{ terms.review_deadline|date:"j M Y, H:i" }} Asia/Singapore</dd>
+    <dt>Payment deadline</dt>
+    <dd>{{ terms.payout_deadline|date:"j M Y, H:i" }} Asia/Singapore</dd>
+    {% endtimezone %}
+  </dl>
+  <p>Approval still requires a separate sponsor release. Unpaid funds may return to the sponsor after expiry.</p>
+</section>
