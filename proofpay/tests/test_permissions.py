@@ -68,6 +68,59 @@ class AwardPermissionTests(TestCase):
         self.assertContains(response, "Not confirmed on-chain")
         self.assertContains(response, "Recipient")
         self.assertContains(response, 'class="role-label"')
+        self.assertNotContains(response, "Needs your review")
+        self.assertContains(response, "Your awards")
+        self.assertContains(
+            response, "Nothing needs your evidence or signature right now."
+        )
+
+    def test_sponsor_program_detail_hides_other_program_awards(self):
+        other_sponsor = User.objects.create_user("other-sponsor")
+        other_verifier = User.objects.create_user("other-verifier")
+        other_recipient = User.objects.create_user("other-recipient")
+        other_program = Program.objects.create(
+            title="Other workshop",
+            requirements_text="Complete another workshop",
+            requirements_version=1,
+            sponsor_user=other_sponsor,
+            verifier_user=other_verifier,
+            claim_deadline=timezone.now() + timedelta(days=7),
+            review_deadline=timezone.now() + timedelta(days=9),
+            payout_deadline=timezone.now() + timedelta(days=10),
+        )
+        other_sponsor_member = ProgramMember.objects.create(
+            program=other_program,
+            user=other_sponsor,
+            role=ProgramMember.Role.SPONSOR,
+            public_wallet=Keypair.random().public_key,
+        )
+        other_verifier_member = ProgramMember.objects.create(
+            program=other_program,
+            user=other_verifier,
+            role=ProgramMember.Role.VERIFIER,
+            public_wallet=Keypair.random().public_key,
+        )
+        other_recipient_member = ProgramMember.objects.create(
+            program=other_program,
+            user=other_recipient,
+            role=ProgramMember.Role.RECIPIENT,
+            public_wallet=Keypair.random().public_key,
+        )
+        other_award = create_award(
+            other_program,
+            sponsor=other_sponsor_member,
+            verifier=other_verifier_member,
+            recipient=other_recipient_member,
+        )
+        self.client.force_login(self.sponsor)
+
+        response = self.client.get(reverse("program_detail", args=(self.program.pk,)))
+
+        self.assertContains(response, "Award register")
+        self.assertContains(response, str(self.award.pk))
+        self.assertNotContains(response, str(other_award.pk))
+        self.assertNotContains(response, "Other workshop")
+        self.assertNotContains(response, "Needs your review")
 
     def test_unrelated_program_participant_gets_404(self):
         unrelated = User.objects.create_user("unrelated")

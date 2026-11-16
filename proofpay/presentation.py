@@ -92,6 +92,86 @@ def status_lines(award):
     return lines
 
 
+def user_acts_now(award, user):
+    """True when this account should open the award to act, not only wait."""
+    role = _role_for(award, user)
+    if role is None:
+        return False
+    step = next_step(award, user)
+    if step.startswith(("Waiting for", "Wait for")):
+        return False
+    if step.startswith(
+        (
+            "Payment is blocked by",
+            "Payment is confirmed",
+            "Unpaid funds were",
+            "This award was cancelled",
+            "Rejection is recorded",
+            "Open the award",
+        )
+    ):
+        return False
+    return True
+
+
+def sort_awards_for_home(awards, user):
+    """Actionable awards first; preserve relative order within each group."""
+    actionable = []
+    waiting = []
+    for award in awards:
+        if user_acts_now(award, user):
+            actionable.append(award)
+        else:
+            waiting.append(award)
+    return actionable + waiting
+
+
+def pick_upcoming_award(awards, user):
+    for award in awards:
+        if user_acts_now(award, user):
+            return award
+    return None
+
+
+def home_copy(role):
+    """Headings and empty sentences for a role home. Role may be None when mixed."""
+    if role == ProgramMember.Role.SPONSOR:
+        return {
+            "page_title": "Sponsor workspace",
+            "upcoming_title": "Upcoming action",
+            "register_title": "Award register",
+            "empty_upcoming": "Nothing needs funding or release right now.",
+            "empty_register": "No awards are assigned to this account yet.",
+            "primary_label": "Open award",
+        }
+    if role == ProgramMember.Role.VERIFIER:
+        return {
+            "page_title": "Verifier workspace",
+            "upcoming_title": "Upcoming action",
+            "register_title": "Award register",
+            "empty_upcoming": "No submissions need a source check right now.",
+            "empty_register": "No awards are assigned to this account yet.",
+            "primary_label": "Open award",
+        }
+    if role == ProgramMember.Role.RECIPIENT:
+        return {
+            "page_title": "Your awards",
+            "upcoming_title": "Upcoming action",
+            "register_title": "Award register",
+            "empty_upcoming": "Nothing needs your evidence or signature right now.",
+            "empty_register": "No awards are assigned to this account yet.",
+            "primary_label": "Open award",
+        }
+    return {
+        "page_title": "Your programs",
+        "upcoming_title": "Upcoming action",
+        "register_title": "Award register",
+        "empty_upcoming": "Nothing needs your action right now.",
+        "empty_register": "No awards are assigned to this account yet.",
+        "primary_label": "Open award",
+    }
+
+
 def next_step(award, user):
     """One sentence for what this account should do next on this award."""
     role = _role_for(award, user)

@@ -1,1 +1,56 @@
-{% extends "base.html" %}{% block content %}<h1>Your programs</h1><p class="muted">A shared record of who has done what and who acts next.</p>{% for membership in memberships %}<section><h2 class="program-title"><a href="{% url 'program_detail' membership.program.pk %}">{{ membership.program.title }}</a></h2><p>{{ membership.get_role_display }}</p><p>{{ membership.program.requirements_text }}</p></section>{% empty %}<section><h2>No programs assigned</h2><p>Your organizer will provide access when your workshop is ready.</p></section>{% endfor %}<h2>Award register</h2>{% for award in awards %}<section class="register"><a href="{% url 'award_detail' award.pk %}">{{ award.program.title }}</a><span>20 Testnet XLM</span><span class="status">{{ award.status_lines.0 }}</span><p class="muted">{{ award.next_step }}</p></section>{% empty %}<p>No awards are assigned to this account yet.</p>{% endfor %}{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+<div{% if recipient_home %} class="recipient-home"{% endif %}>
+  <h1>{{ home.page_title }}</h1>
+  <p class="muted">A shared record of who has done what and who acts next.</p>
+
+  <section class="upcoming" aria-labelledby="upcoming-heading">
+    <h2 id="upcoming-heading">{{ home.upcoming_title }}</h2>
+    {% if upcoming %}
+      <p class="next-step">{{ upcoming.next_step }}</p>
+      <p class="muted">{{ upcoming.program.title }} · {{ upcoming.status_lines.0 }} · 20 Testnet XLM</p>
+      <p><a class="button" href="{% url 'award_detail' upcoming.pk %}">{{ home.primary_label }}</a></p>
+    {% else %}
+      <p>{{ home.empty_upcoming }}</p>
+    {% endif %}
+  </section>
+
+  <h2>Your programs</h2>
+  {% for membership in memberships %}
+    <section>
+      <h3 class="program-title"><a href="{% url 'program_detail' membership.program.pk %}">{{ membership.program.title }}</a></h3>
+      <p>{{ membership.get_role_display }}</p>
+      <p>{{ membership.program.requirements_text }}</p>
+    </section>
+  {% empty %}
+    <section>
+      <h3>No programs assigned</h3>
+      <p>Your organizer will provide access when your workshop is ready.</p>
+    </section>
+  {% endfor %}
+
+  <h2>{{ home.register_title }}</h2>
+  {% for award in awards %}
+    <section class="register">
+      <div class="register-program">
+        <span class="register-label">Program</span>
+        <a href="{% url 'award_detail' award.pk %}">{{ award.program.title }}</a>
+      </div>
+      <div class="register-amount">
+        <span class="register-label">Amount</span>
+        <span>20 Testnet XLM</span>
+      </div>
+      <div class="register-status">
+        <span class="register-label">State</span>
+        <span class="status">{{ award.status_lines.0 }}</span>
+      </div>
+      <div class="register-next">
+        <span class="register-label">Next step</span>
+        <span>{{ award.next_step }}</span>
+      </div>
+    </section>
+  {% empty %}
+    <p>{{ home.empty_register }}</p>
+  {% endfor %}
+</div>
+{% endblock %}

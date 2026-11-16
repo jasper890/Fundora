@@ -14,7 +14,14 @@ from django.views.decorators.http import require_POST
 
 from proofpay.models import ProgramMember
 from proofpay.permissions import require_award_role, visible_awards
-from proofpay.presentation import next_step, status_lines, tracker_steps
+from proofpay.presentation import (
+    home_copy,
+    next_step,
+    pick_upcoming_award,
+    sort_awards_for_home,
+    status_lines,
+    tracker_steps,
+)
 
 
 def _decorate_awards(awards, user):
@@ -26,17 +33,30 @@ def _decorate_awards(awards, user):
     return decorated
 
 
+def _workspace_role(memberships):
+    roles = {membership.role for membership in memberships}
+    if len(roles) == 1:
+        return next(iter(roles))
+    return None
+
+
 @login_required
 def program_list(request):
-    memberships = ProgramMember.objects.filter(
-        user=request.user, active=True
-    ).select_related("program")
-    awards = _decorate_awards(
-        visible_awards(request.user).select_related(
-            "program",
-            "sponsor_member",
-            "verifier_member",
-            "recipient_member",
+    memberships = list(
+        ProgramMember.objects.filter(
+            user=request.user, active=True
+        ).select_related("program")
+    )
+    role = _workspace_role(memberships)
+    awards = sort_awards_for_home(
+        _decorate_awards(
+            visible_awards(request.user).select_related(
+                "program",
+                "sponsor_member",
+                "verifier_member",
+                "recipient_member",
+            ),
+            request.user,
         ),
         request.user,
     )
@@ -46,6 +66,10 @@ def program_list(request):
         {
             "memberships": memberships,
             "awards": awards,
+            "workspace_role": role,
+            "home": home_copy(role),
+            "upcoming": pick_upcoming_award(awards, request.user),
+            "recipient_home": role == ProgramMember.Role.RECIPIENT,
         },
     )
 
@@ -281,6 +305,9 @@ def program_detail(request, program_id):
     from proofpay.models import Program
     from django.utils import timezone
     program=get_object_or_404(Program,pk=program_id,members__user=request.user,members__active=True)
+    membership = get_object_or_404(
+        ProgramMember, program=program, user=request.user, active=True
+    )
     awards_qs=visible_awards(request.user).filter(program=program).select_related(
         "recipient_member__user",
         "sponsor_member",
@@ -290,14 +317,30 @@ def program_detail(request, program_id):
     counts={name:awards_qs.filter(status=name,last_confirmed_ledger__isnull=False).count() for name in ("FUNDED","SUBMITTED","APPROVED","PAID","REFUNDED")}
     counts["ENROLLED"]=awards_qs.count()
     counts["REFUNDABLE"]=awards_qs.filter(status__in=("FUNDED","SUBMITTED","APPROVED","REJECTED"),last_confirmed_ledger__isnull=False,program__payout_deadline__lt=timezone.now()).count()
-    awards=_decorate_awards(awards_qs, request.user)
+    awards=sort_awards_for_home(
+        _decorate_awards(awards_qs, request.user),
+        request.user,
+    )
     from proofpay.exports import audit_awards
     try:
         audit_awards(request.user,program)
         can_export=True
     except PermissionDenied:
         can_export=False
-    return render(request,"proofpay/program_detail.html",{"program":program,"awards":awards,"counts":counts,"can_export":can_export})
+    return render(
+        request,
+        "proofpay/program_detail.html",
+        {
+            "program": program,
+            "awards": awards,
+            "counts": counts,
+            "can_export": can_export,
+            "workspace_role": membership.role,
+            "home": home_copy(membership.role),
+            "upcoming": pick_upcoming_award(awards, request.user),
+            "recipient_home": membership.role == ProgramMember.Role.RECIPIENT,
+        },
+    )
 
 
 @login_required
