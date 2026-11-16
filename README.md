@@ -2,7 +2,7 @@
 
 Documentation for a proposed Stellar Testnet training-stipend prototype. A sponsor deposits funds, a recipient submits private evidence, a verifier approves it, and the sponsor separately authorizes payment. Blockchain records approvals and transfers; a human still checks the underlying completion record.
 
-**Status: design only, 16 November 2026.** This directory contains no ProofPay application, executable setup, deployed contract, CI workflow, or completed customer pilot. Research checks reported in the repository report are checks of upstream projects, not ProofPay tests. This folder is not currently a Git checkout.
+**Status: design only, 16 November 2026.** This Git repository contains ProofPay documentation and OpenSpec development workflow tooling, but no ProofPay application, executable application setup, deployed contract, CI workflow, or completed customer pilot. Research checks reported in the repository report are checks of upstream projects, not ProofPay tests.
 
 ## Start here
 
@@ -24,6 +24,8 @@ Documentation for a proposed Stellar Testnet training-stipend prototype. A spons
 Read the product, repository report, system plan, and agent checklist in full before coding. Supporting docs explain those sources; they do not silently replace their requirements.
 
 ## Giving this to an agent
+
+[OpenSpec workflow](docs/OPENSPEC.md) explains the installed Codex/Claude support and prepared Task 1 change. Include `openspec/`, `.agents/` and `.claude/` when transferring this workflow. The existing six-task plan remains authoritative.
 
 Copy this root's current Markdown files and the `docs/` directory together into the GitHub repository. Include root `AGENTS.md` for Codex and `CLAUDE.md` for Claude; both point to the same standard. Preserve relative paths. Do not copy research clone caches, local credentials, evidence, or generated archives into source control.
 

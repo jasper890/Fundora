@@ -1,0 +1,26 @@
+schema: spec-driven
+context: |
+  Read AGENTS.md, docs/ENGINEERING_STANDARD.md and all four authoritative handoffs.
+  Their document ownership rules govern OpenSpec. It is a derived execution record,
+  not a replacement specification or a second roadmap.
+  Follow the six tasks in ProofPay_System_and_Implementation_Plan.md.
+  Design only: no application exists. Current authorization is documentation/tooling.
+  Synthetic users, native Testnet XLM, distinct roles, private evidence, no AI approval.
+  Deployment, spending, Mainnet, outreach and grant submission need explicit authorization.
+rules:
+  proposal:
+    - Cite the system-plan task and affected A1-A10 criteria; identify permissions, persistence, configuration and tests.
+  specs:
+    - Derive scenarios from owner documents and cite sources; resolve contradictions in the owners first.
+    - Do not describe proposed behavior as implemented.
+  design:
+    - Reference existing architecture and HTTP interfaces rather than duplicating them.
+  tasks:
+    - Preserve every check in the source task; record PASS, FAIL or NOT RUN in docs/VERIFICATION.md.
+operations:
+  apply:
+    guidance:
+      - Start product implementation only after user authorization; resolve technical gates using current primary documentation.
+  archive:
+    guidance:
+      - Require actual verification evidence; artifact completeness is not implementation completeness.

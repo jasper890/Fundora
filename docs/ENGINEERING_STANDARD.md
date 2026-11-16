@@ -63,4 +63,6 @@ This repository uses Codex and Claude only. Root `AGENTS.md` is the Codex entry 
 
 ## Keeping documentation aligned with code
 
+Use [OpenSpec](OPENSPEC.md) for derived task execution records. Its configuration and generated skills are subordinate to this standard and the document owners above. Validate artifacts, preserve all source-task checks, and record actual implementation evidence before synchronizing or archiving a change.
+
 For every code change, identify and update only documents whose described behavior, interfaces, setup, or verification results actually changed. Do this in the same change and list the updated documents in the completion report. If none need updating, say why. Do not rewrite all Markdown files for routine edits, mark planned work as complete without evidence, or alter approved requirements merely to match a broken implementation. Documentation does not synchronize itself; the agent must perform and review these updates.
