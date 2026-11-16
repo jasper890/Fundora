@@ -4,7 +4,7 @@ Status: Task 1 local baseline evidence recorded; acceptance criteria A1-A10 rema
 
 ## Task 1 implementation record — 16 November 2026
 
-Working snapshot: branch `implementation/task-1-app-boundary`, managed worktree `C:\Users\R O G - S T R I X\.codex\worktrees\b84f\Proofpay`. Host shell: Windows PowerShell. Tool versions: Python 3.13.15; uv 0.12.21; Django 5.2.19; stellar-sdk 17.0.1; psycopg/psycopg-binary 3.3.9; Node 24.19.0; npm 11.17.0; TypeScript 7.0.2; esbuild 0.28.2; PostgreSQL 17.12; Rust/Cargo 1.99.1; Stellar CLI 28.1.0; Docker 29.8.1. Installed Rust WASM target: `wasm32v1-none`. See [operations](OPERATIONS.md) for the local database boundary.
+Working snapshot: commit `c70cf04` on branch `implementation/task-1-app-boundary`, managed worktree `C:\Users\R O G - S T R I X\.codex\worktrees\b84f\Proofpay`. Host shell: Windows PowerShell. Tool versions: Python 3.13.15; uv 0.12.21; Django 5.2.19; stellar-sdk 17.0.1; psycopg/psycopg-binary 3.3.9; Node 24.19.0; npm 11.17.0; TypeScript 7.0.2; esbuild 0.28.2; PostgreSQL 17.12; Rust/Cargo 1.99.1; Stellar CLI 28.1.0; Docker 29.8.1. Installed Rust WASM target: `wasm32v1-none`. See [operations](OPERATIONS.md) for the local database boundary.
 
 | Check | Result | Evidence |
 |---|---|---|
@@ -22,7 +22,7 @@ Working snapshot: branch `implementation/task-1-app-boundary`, managed worktree 
 
 **Open gates:** Freighter 6.0.1's build/type surface is verified, but the manual Testnet signing probe is **NOT RUN**; Freighter was not found in the checked Chrome/Edge profiles, and no user-controlled wallet signature was requested. Deployment-preparation checks for wrong token, network, and WASM code hash are **NOT RUN** because the contract/code hash and Task 4 preparation handler do not exist yet. No Testnet deployment or network transaction occurred. These gaps do not prove wallet compatibility; resolve them before enabling a live Testnet flow.
 
-This record covers only Task 1's local baseline. No contract invariant suite, private evidence upload/download, chain action, real Testnet balance check, browser end-to-end run, outside usability test, hosted deployment, or customer pilot has passed. Commit evidence is pending review.
+This record covers only Task 1's local baseline. No contract invariant suite, private evidence upload/download, chain action, real Testnet balance check, browser end-to-end run, outside usability test, hosted deployment, or customer pilot has passed. Commit `c70cf04` is the independently testable local baseline; Task 1's open gates remain open.
 
 | Scope criterion | Owner task | Minimum proof | Planned checks | Current result |
 |---|---|---|---|---|
