@@ -171,7 +171,7 @@ export function WalletPanel(props: Props) {
           disabled={busy || !operationId}
           onClick={() => submitLocal()}
         >
-          Confirm locally (FakeRpc)
+          Submit signed / FakeRpc confirm
         </Button>
         <Button
           type="button"

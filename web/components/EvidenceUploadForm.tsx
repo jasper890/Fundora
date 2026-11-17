@@ -1,9 +1,17 @@
 "use client";
 
+import { createClient } from "@supabase/supabase-js";
 import { useState } from "react";
 import { Button } from "./Button";
 import { Field } from "./Field";
 import { Notice } from "./Notice";
+
+function browserSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key);
+}
 
 export function EvidenceUploadForm({
   awardId,
@@ -20,7 +28,9 @@ export function EvidenceUploadForm({
     setPending(true);
     setMessage(null);
     const form = new FormData(event.currentTarget);
-    const files = form.getAll("files").filter((f) => f instanceof File && f.size > 0);
+    const files = form
+      .getAll("files")
+      .filter((f): f is File => f instanceof File && f.size > 0);
     if (files.length < 1 || files.length > 3) {
       setPending(false);
       setMessage("Upload between one and three files.");
@@ -36,8 +46,8 @@ export function EvidenceUploadForm({
         expected_revision: Number(
           form.get("expected_revision") ?? expectedRevision,
         ),
-        filenames: files.map((f) => (f as File).name),
-        content_types: files.map((f) => (f as File).type),
+        filenames: files.map((f) => f.name),
+        content_types: files.map((f) => f.type),
       }),
     });
     const beginData = await begin.json().catch(() => ({}));
@@ -47,15 +57,43 @@ export function EvidenceUploadForm({
       return;
     }
 
-    // Local path without Storage: finalize with file digests computed client-side placeholder.
-    // Full signed-URL upload lands when Supabase Storage is configured.
+    let skipStorage = beginData.upload_mode !== "signed_upload";
+    if (!skipStorage && Array.isArray(beginData.uploads)) {
+      const sb = browserSupabase();
+      if (!sb) {
+        skipStorage = true;
+      } else {
+        for (let i = 0; i < beginData.uploads.length; i += 1) {
+          const upload = beginData.uploads[i] as {
+            path: string;
+            token: string;
+          };
+          const file = files[i];
+          if (!file) {
+            skipStorage = true;
+            break;
+          }
+          const { error } = await sb.storage
+            .from("evidence")
+            .uploadToSignedUrl(upload.path, upload.token, file, {
+              contentType: file.type,
+            });
+          if (error) {
+            setPending(false);
+            setMessage(error.message || "Storage upload failed");
+            return;
+          }
+        }
+      }
+    }
+
     const finalize = await fetch(`/api/v1/awards/${awardId}/evidence/finalize`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         reservation_id: beginData.reservation_id,
-        skip_storage: true,
-        note: "Storage upload deferred; reservation recorded.",
+        skip_storage: skipStorage,
+        filenames: files.map((f) => f.name),
       }),
     });
     const finalData = await finalize.json().catch(() => ({}));

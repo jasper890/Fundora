@@ -6,6 +6,7 @@ import { loadAppUserByAuthId } from "@/lib/awards/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { MemberView } from "@/lib/types";
 import { validateEvidenceFilename } from "@/lib/evidence/validate";
+import { createEvidenceUploadTokens } from "@/lib/evidence/storage";
 
 const Body = z
   .object({
@@ -25,6 +26,10 @@ export async function POST(
   const { id } = await context.params;
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return jsonError("INVALID_BODY", 400, "Invalid evidence request.");
+
+  if (parsed.data.filenames.length !== parsed.data.content_types.length) {
+    return jsonError("INVALID_BODY", 400, "filenames and content_types length must match.");
+  }
 
   for (const name of parsed.data.filenames) {
     if (!validateEvidenceFilename(name)) {
@@ -90,10 +95,7 @@ export async function POST(
       ["RECIPIENT"],
     );
 
-    if (
-      row.status !== "FUNDED" &&
-      row.status !== "SUBMITTED"
-    ) {
+    if (row.status !== "FUNDED" && row.status !== "SUBMITTED") {
       return jsonError(
         "INVALID_STATE",
         409,
@@ -104,9 +106,11 @@ export async function POST(
       return jsonError("STALE_REVISION", 409, "Evidence revision changed. Reload and try again.");
     }
 
+    // Keep object keys ≤80 chars to match evidence_file.storage_name.
     const paths = parsed.data.filenames.map(
-      (name, index) => `${id}/${crypto.randomUUID()}-${index}-${name}`,
+      () => `${crypto.randomUUID().replace(/-/g, "")}.bin`,
     );
+
     const inserted = (await db`
       insert into evidence_upload_reservation (
         award_id, author_id, expected_revision, explanation, source_ref, object_paths
@@ -117,10 +121,21 @@ export async function POST(
       returning id
     `) as unknown as { id: string }[];
 
+    let uploads: { path: string; token: string; signedUrl: string }[] = [];
+    let uploadMode: "signed_upload" | "deferred_storage" = "signed_upload";
+    try {
+      uploads = await createEvidenceUploadTokens(paths);
+    } catch (error) {
+      console.warn("Signed upload unavailable; client may use skip_storage.", error);
+      uploadMode = "deferred_storage";
+    }
+
     return jsonOk({
       reservation_id: inserted[0].id,
       object_paths: paths,
-      upload_mode: "deferred_storage",
+      content_types: parsed.data.content_types,
+      uploads,
+      upload_mode: uploadMode,
     });
   } catch (error) {
     if (error instanceof PermissionDeniedError) return jsonError("FORBIDDEN", 403);

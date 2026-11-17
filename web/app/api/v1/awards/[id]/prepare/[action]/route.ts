@@ -1,7 +1,9 @@
 import { z } from "zod";
-import { ChainError, ROLES } from "@/lib/chain/constants";
+import { ChainError, NETWORK_PASSPHRASE, ROLES } from "@/lib/chain/constants";
 import { validateIntent } from "@/lib/chain/intent";
-import { FakeRpc } from "@/lib/chain/rpc";
+import { createRpc, useFakeRpc } from "@/lib/chain/gateway";
+import { LiveRpc } from "@/lib/chain/live";
+import { constructorManifest } from "@/lib/chain/manifest";
 import { sql } from "@/lib/db";
 import { jsonError, jsonOk, requireSameOrigin } from "@/lib/http";
 import { PermissionDeniedError, requireAwardRole } from "@/lib/permissions";
@@ -59,13 +61,13 @@ export async function POST(
     const rows = (await db`
       select
         a.*,
-        sm.id as sponsor_member_pk, sm.user_id as sponsor_user_id, sm.role as sponsor_role,
-        sm.active as sponsor_active, sm.public_wallet as sponsor_wallet,
-        vm.id as verifier_member_pk, vm.user_id as verifier_user_id, vm.role as verifier_role,
-        vm.active as verifier_active, vm.public_wallet as verifier_wallet,
-        rm.id as recipient_member_pk, rm.user_id as recipient_user_id, rm.role as recipient_role,
-        rm.active as recipient_active, rm.public_wallet as recipient_wallet
+        p.requirements_text, p.requirements_version,
+        p.claim_deadline, p.review_deadline, p.payout_deadline,
+        sm.user_id as sponsor_user_id, sm.active as sponsor_active, sm.public_wallet as sponsor_wallet,
+        vm.user_id as verifier_user_id, vm.active as verifier_active, vm.public_wallet as verifier_wallet,
+        rm.user_id as recipient_user_id, rm.active as recipient_active, rm.public_wallet as recipient_wallet
       from award a
+      join program p on p.id = a.program_id
       join program_member sm on sm.id = a.sponsor_member_id
       join program_member vm on vm.id = a.verifier_member_id
       join program_member rm on rm.id = a.recipient_member_id
@@ -120,16 +122,89 @@ export async function POST(
       verifier_hold: Boolean(row.verifier_hold),
     };
 
-    // Local development path: FakeRpc until live stellar-sdk prepare is wired.
-    const rpc = new FakeRpc(snapshot);
-    const envelope = await rpc.prepare({
-      action: resolvedAction,
-      signer: actor.public_wallet,
-      contractId: (row.contract_id as string | null) ?? null,
-      snapshot,
-    });
+    const fake = useFakeRpc();
+    let envelope;
+    let mode: "fakerpc" | "live" = "fakerpc";
+    let manifest: Record<string, unknown> | null = null;
+
+    if (fake) {
+      const rpc = createRpc(snapshot);
+      envelope = await rpc.prepare({
+        action: resolvedAction,
+        signer: actor.public_wallet,
+        contractId: (row.contract_id as string | null) ?? null,
+        snapshot,
+      });
+    } else {
+      mode = "live";
+      const live = new LiveRpc();
+      if (resolvedAction === "DEPLOY") {
+        if (row.contract_id) return jsonError("ALREADY_DEPLOYED", 409);
+        manifest = constructorManifest({
+          existing: (row.deployment_manifest as Record<string, unknown>) || null,
+          sponsorWallet: String(row.sponsor_wallet),
+          verifierWallet: String(row.verifier_wallet),
+          recipientWallet: String(row.recipient_wallet),
+          requirementsText: String(row.requirements_text),
+          requirementsVersion: Number(row.requirements_version),
+          claimDeadline: new Date(String(row.claim_deadline)),
+          reviewDeadline: new Date(String(row.review_deadline)),
+          payoutDeadline: new Date(String(row.payout_deadline)),
+        });
+        await db`
+          update award
+          set deployment_manifest = ${db.json(manifest)}
+          where id = ${id}
+        `;
+      }
+
+      let evidence: { revision: number; digest: string } | null = null;
+      if (resolvedAction === "SUBMIT") {
+        const evidenceId = String(
+          (parsed.data.params as { evidence_id?: string }).evidence_id ?? "",
+        );
+        const ev = (await db`
+          select revision, digest from evidence_version
+          where id = ${evidenceId} and award_id = ${id}
+          limit 1
+        `) as unknown as { revision: number; digest: string }[];
+        if (!ev[0]) return jsonError("INVALID_PARAMETERS", 400);
+        evidence = { revision: Number(ev[0].revision), digest: String(ev[0].digest) };
+      }
+
+      envelope = await live.prepareLive({
+        action: resolvedAction,
+        signer: actor.public_wallet,
+        contractId: (row.contract_id as string | null) ?? null,
+        snapshot,
+        manifest,
+        evidence,
+        expectedVersion: parsed.data.expected_version ?? null,
+        hold:
+          typeof (parsed.data.params as { held?: boolean }).held === "boolean"
+            ? Boolean((parsed.data.params as { held?: boolean }).held)
+            : null,
+      });
+    }
 
     const expires = new Date(envelope.maxTime * 1000);
+    const preview = {
+      action: resolvedAction,
+      network: "TESTNET",
+      network_passphrase: NETWORK_PASSPHRASE,
+      signer: actor.public_wallet,
+      recipient: String(row.recipient_wallet),
+      asset: "Testnet XLM",
+      amount_base_units: String(row.base_units ?? 200000000),
+      maximum_fee_base_units: String(envelope.fee),
+      expected_version: parsed.data.expected_version ?? null,
+      mode,
+      note:
+        mode === "live"
+          ? "Live Testnet preview — Freighter must sign this exact envelope."
+          : "FakeRpc preview — set STELLAR_USE_FAKE_RPC=0 and STELLAR_WASM_HASH for live XDR.",
+    };
+
     const inserted = (await db`
       insert into chain_operation (
         award_id, actor_id, signer, action, idempotency_key, intent, status,
@@ -144,18 +219,7 @@ export async function POST(
         'PREPARED',
         ${envelope.toXdr()},
         ${envelope.hashHex()},
-        ${db.json({
-          action: resolvedAction,
-          network: "TESTNET",
-          network_passphrase: "Test SDF Network ; September 2015",
-          signer: actor.public_wallet,
-          recipient: String(row.recipient_wallet),
-          asset: "Testnet XLM",
-          amount_base_units: String(row.base_units ?? 200000000),
-          maximum_fee_base_units: String(envelope.fee),
-          expected_version: parsed.data.expected_version ?? null,
-          note: "FakeRpc preview — live XDR port continues in Phase 6",
-        })},
+        ${db.json(preview)},
         ${db.json(snapshot)},
         ${expires}
       )

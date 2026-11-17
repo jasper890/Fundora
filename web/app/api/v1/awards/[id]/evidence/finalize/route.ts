@@ -1,21 +1,27 @@
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { sql } from "@/lib/db";
 import { jsonError, jsonOk, requireSameOrigin } from "@/lib/http";
 import { loadAppUserByAuthId } from "@/lib/awards/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  EVIDENCE_TYPE_ERROR,
+  validateEvidenceBytes,
+} from "@/lib/evidence/validate";
+import { canonicalManifest, sha256Hex } from "@/lib/evidence/manifest";
+import {
+  deleteEvidenceObjects,
+  downloadEvidenceObject,
+} from "@/lib/evidence/storage";
 
 const Body = z
   .object({
     reservation_id: z.string().uuid(),
     skip_storage: z.boolean().optional(),
     note: z.string().max(200).optional(),
+    filenames: z.array(z.string().max(160)).min(1).max(3).optional(),
   })
   .strict();
-
-function syntheticDigest(parts: string[]): string {
-  return createHash("sha256").update(parts.join("|")).digest("hex");
-}
 
 export async function POST(
   request: Request,
@@ -35,14 +41,7 @@ export async function POST(
   if (!appUser) return jsonError("UNAUTHENTICATED", 401);
 
   const db = sql();
-
-  if (!parsed.data.skip_storage) {
-    return jsonError(
-      "STORAGE_REQUIRED",
-      501,
-      "Full finalize with magic-byte checks requires Storage objects.",
-    );
-  }
+  const orphanPaths: string[] = [];
 
   try {
     const result = await db.begin(async (tx) => {
@@ -80,22 +79,84 @@ export async function POST(
         throw Object.assign(new Error("STALE_REVISION"), { code: "STALE_REVISION" });
       }
 
-      const nextRevision = Number(award.evidence_revision) + 1;
-      const nonce = randomBytes(16).toString("hex");
       const paths = reservation.object_paths ?? [];
-      const digest = syntheticDigest([
-        id,
-        String(nextRevision),
-        nonce,
-        reservation.explanation,
-        reservation.source_ref,
-        ...paths,
-      ]);
-      const manifest = JSON.stringify({
+      orphanPaths.push(...paths);
+      const nextRevision = Number(award.evidence_revision) + 1;
+      const nonce = randomBytes(32).toString("hex");
+
+      const prepared: {
+        path: string;
+        filename: string;
+        contentType: string;
+        size: number;
+        digest: string;
+        storageName: string;
+      }[] = [];
+
+      const originalNames = parsed.data.filenames ?? [];
+      if (originalNames.length && originalNames.length !== paths.length) {
+        throw Object.assign(new Error("INVALID_BODY"), { code: "INVALID_BODY" });
+      }
+
+      if (parsed.data.skip_storage) {
+        for (let i = 0; i < paths.length; i += 1) {
+          const path = paths[i]!;
+          const filename = (originalNames[i] ?? `evidence-${i + 1}.bin`).slice(0, 160);
+          const digest = sha256Hex(`${path}|${nonce}|skip`);
+          prepared.push({
+            path,
+            filename,
+            contentType: "application/octet-stream",
+            size: 1,
+            digest,
+            storageName: path.slice(0, 80),
+          });
+        }
+      } else {
+        for (let i = 0; i < paths.length; i += 1) {
+          const path = paths[i]!;
+          const data = await downloadEvidenceObject(path);
+          const filename = (originalNames[i] ?? `evidence-${i + 1}.bin`).slice(0, 160);
+          const ext = filename.includes(".")
+            ? `.${filename.split(".").pop()!.toLowerCase()}`
+            : "";
+          const contentType =
+            ext === ".pdf"
+              ? "application/pdf"
+              : ext === ".png"
+                ? "image/png"
+                : ext === ".jpg" || ext === ".jpeg"
+                  ? "image/jpeg"
+                  : "application/octet-stream";
+          if (!validateEvidenceBytes(filename, contentType, data)) {
+            throw Object.assign(new Error("INVALID_FILE"), { code: "INVALID_FILE" });
+          }
+          prepared.push({
+            path,
+            filename,
+            contentType,
+            size: data.length,
+            digest: sha256Hex(data),
+            storageName: path.slice(0, 80),
+          });
+        }
+      }
+
+      const manifestBuf = canonicalManifest({
+        awardId: id,
         revision: nextRevision,
-        paths,
-        note: parsed.data.note ?? "skip_storage local finalize",
+        nonce,
+        files: prepared.map((p) => ({
+          filename: p.filename,
+          sha256: p.digest,
+          size: p.size,
+          content_type: p.contentType,
+        })),
+        sourceRef: reservation.source_ref,
+        explanation: reservation.explanation,
       });
+      const digest = sha256Hex(manifestBuf);
+      const manifest = manifestBuf.toString("utf8");
 
       const versions = (await tx`
         insert into evidence_version (
@@ -108,20 +169,17 @@ export async function POST(
         returning id, revision, digest
       `) as unknown as { id: string; revision: number; digest: string }[];
 
-      for (let i = 0; i < paths.length; i += 1) {
-        const path = paths[i]!;
-        const filename = path.split("/").pop() ?? `file-${i}`;
-        const fileDigest = syntheticDigest([path, digest]);
+      for (const file of prepared) {
         await tx`
           insert into evidence_file (
             version_id, storage_name, filename, content_type, size, digest
           ) values (
             ${versions[0].id},
-            ${`${versions[0].id}-${i}`},
-            ${filename.slice(0, 160)},
-            ${"application/octet-stream"},
-            ${1},
-            ${fileDigest}
+            ${file.storageName},
+            ${file.filename},
+            ${file.contentType},
+            ${file.size},
+            ${file.digest}
           )
         `;
       }
@@ -140,7 +198,11 @@ export async function POST(
         where id = ${parsed.data.reservation_id}
       `;
 
-      return versions[0];
+      orphanPaths.length = 0;
+      return {
+        ...versions[0],
+        skip: Boolean(parsed.data.skip_storage),
+      };
     });
 
     return jsonOk({
@@ -148,10 +210,14 @@ export async function POST(
       evidence_id: result.id,
       revision: result.revision,
       digest: result.digest,
-      message:
-        "Local skip_storage finalize created an evidence_version. Wire Storage signed uploads for real file bytes.",
+      message: result.skip
+        ? "Local skip_storage finalize created an evidence_version."
+        : "Evidence revision stored after Storage magic-byte checks.",
     });
   } catch (error) {
+    if (orphanPaths.length && !parsed.data.skip_storage) {
+      await deleteEvidenceObjects(orphanPaths).catch(() => undefined);
+    }
     const code = (error as { code?: string }).code;
     if (code === "NOT_FOUND") return jsonError("NOT_FOUND", 404);
     if (code === "INVALID_STATE") {
@@ -163,6 +229,10 @@ export async function POST(
     }
     if (code === "STALE_REVISION") {
       return jsonError("STALE_REVISION", 409, "Evidence revision changed. Reload and try again.");
+    }
+    if (code === "INVALID_BODY") return jsonError("INVALID_BODY", 400);
+    if (code === "INVALID_FILE") {
+      return jsonError("INVALID_FILE", 400, EVIDENCE_TYPE_ERROR);
     }
     console.error(error);
     return jsonError("SERVER_ERROR", 500);
