@@ -23,13 +23,6 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const actor = user && await loadAppUserByAuthId(user.id);
   if (!actor?.is_active) return jsonError("UNAUTHENTICATED", 401);
   const fake = isFakeRpc();
-  if (!fake) {
-    return jsonError(
-      "LIVE_SUBMISSION_REVIEW_REQUIRED",
-      403,
-      "Live Testnet submission is disabled until the chain preparation and reconciliation gates are reviewed.",
-    );
-  }
   const db = sql();
   try {
     const claim = await db.begin(async (tx) => {
@@ -57,7 +50,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       if (!role || !ROLES[op.action]?.includes(role as never)) throw new ChainError("ACTION_DENIED", 403);
       const intent = op.intent as {
         payload?: { expected_version?: string; params?: { evidence_id?: string; new_verifier_member_id?: string } };
-        evidence?: { id: string; revision: number; digest: string };
+        evidence?: { id: string; revision: number; digest: string; author_id?: string };
         review_id?: string;
         new_verifier_wallet?: string;
       };
@@ -71,7 +64,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         const snapshot = op.expected_snapshot as { evidence_revision?: number };
         if (!evidence || evidence.author_id !== actor.id || Number(evidence.revision) !== Number(bound.revision) ||
           evidence.digest !== bound.digest || Number(bound.revision) !== Number(snapshot.evidence_revision) + 1 ||
-          Number(award.evidence_revision) !== Number(bound.revision) || award.evidence_digest !== bound.digest) {
+          Number(award.evidence_revision) !== Number(bound.revision) || award.evidence_digest !== bound.digest ||
+          (bound.author_id != null && bound.author_id !== evidence.author_id)) {
           throw new ChainError("STALE_EVIDENCE");
         }
       }

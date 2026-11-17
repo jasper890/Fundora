@@ -43,3 +43,17 @@ it("rejects malformed hold flags instead of coercing them to true", async () => 
   state.sponsor_hold = "false";
   await expect(live.readAward(token, manifest)).rejects.toMatchObject({ code: "STATE_UNAVAILABLE" });
 });
+
+it("decodes a live Some(BytesN<32>) evidence digest to lowercase hex", async () => {
+  const digestBytes = Buffer.from("ab".repeat(32), "hex");
+  state.status = ["Submitted"];
+  state.version = BigInt(2);
+  state.evidence_revision = 1;
+  state.evidence_digest = digestBytes;
+  await expect(live.readAward(token, manifest)).resolves.toMatchObject({
+    status: "SUBMITTED",
+    version: 2,
+    evidence_revision: 1,
+    evidence_digest: "ab".repeat(32),
+  });
+});

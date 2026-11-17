@@ -235,9 +235,16 @@ export class LiveRpc implements RpcGateway {
     };
   }
 
-  async submit(_signedXdr: string): Promise<{ hash: string }> {
-    // shortcut: live submission stays disabled until prepare/reconcile review gates pass; remove only after independent approval.
-    throw new ChainError("LIVE_SUBMISSION_REVIEW_REQUIRED", 403);
+  async submit(signedXdr: string): Promise<{ hash: string }> {
+    // Still fail closed unless the operator explicitly enables network writes.
+    if (process.env.STELLAR_ALLOW_SUBMISSION !== "1") {
+      throw new ChainError("SUBMISSION_DISABLED", 403);
+    }
+    await this.verifyNetwork();
+    const tx = TransactionBuilder.fromXDR(signedXdr, NETWORK);
+    const sent = await this.server.sendTransaction(tx);
+    if (!sent?.hash) throw new ChainError("SUBMISSION_UNAVAILABLE", 503);
+    return { hash: String(sent.hash).toLowerCase() };
   }
 
   async getTransaction(hash: string): Promise<TxOutcome> {

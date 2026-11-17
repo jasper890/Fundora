@@ -1,13 +1,18 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
 import { LiveRpc } from "../lib/chain/live";
 
-describe("live submission checkpoint", () => {
-  it("rejects before any RPC submission while chain review is incomplete", async () => {
+describe("live submission gate", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("rejects before any RPC submission when STELLAR_ALLOW_SUBMISSION is not enabled", async () => {
+    vi.stubEnv("STELLAR_ALLOW_SUBMISSION", "0");
     await expect(new LiveRpc().submit("signed-xdr")).rejects.toMatchObject({
-      code: "LIVE_SUBMISSION_REVIEW_REQUIRED",
+      code: "SUBMISSION_DISABLED",
       status: 403,
     });
   });

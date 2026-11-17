@@ -67,6 +67,11 @@ export async function reconcileOperation(operationId: string) {
       }
     }
     await tx`update chain_operation set status = ${status}, confirmed_ledger = ${outcome.ledger ?? null}, last_checked_at = now(), error_code = '' where id = ${operationId}`;
+    // Match Django: linked review rows settle with the terminal operation outcome.
+    if (current.review_id) {
+      const reviewStatus = status === "CONFIRMED_SUCCESS" ? "CONFIRMED" : "FAILED";
+      await tx`update review_action set status = ${reviewStatus} where id = ${current.review_id} and status = 'PENDING'`;
+    }
     await tx`insert into chain_observation (operation_id, status, code, ledger) values (${operationId}, ${status}, '', ${outcome.ledger ?? null})`;
     return { ...current, status, confirmed_ledger: outcome.ledger };
   });

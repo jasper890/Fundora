@@ -90,3 +90,22 @@ it("keeps a conflicting local digest visible as requiring synchronization", asyn
   expect(write?.values).toContain("b".repeat(64));
   expect(write?.values).toContain(true);
 });
+
+it("confirms a linked pending review_action after a successful live operation", async () => {
+  op.review_id = "review";
+  op.action = "APPROVE";
+  await reconcileOperation("op");
+  const write = writes.find((w) => w.query.startsWith("update review_action"));
+  expect(write?.values).toContain("CONFIRMED");
+  expect(write?.values).toContain("review");
+});
+
+it("marks a linked pending review_action failed after a failed live operation", async () => {
+  op.review_id = "review";
+  op.action = "APPROVE";
+  mocks.outcome.mockResolvedValueOnce({ status: "FAILED", ledger: 12 });
+  await reconcileOperation("op");
+  const write = writes.find((w) => w.query.startsWith("update review_action"));
+  expect(write?.values).toContain("FAILED");
+  expect(op.status).toBe("CONFIRMED_FAILED");
+});

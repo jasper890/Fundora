@@ -61,6 +61,14 @@ it("refuses legacy preparations without a bound evidence commitment", async () =
   expect((await submit()).status).toBe(409);
   expect(mocks.apply).not.toHaveBeenCalled();
 });
+it("refuses a submission when intent author_id disagrees with the stored evidence author", async () => {
+  op.intent = {
+    payload: { expected_version: "2", params: { evidence_id: "evidence" } },
+    evidence: { ...evidence, author_id: "other-author" },
+  };
+  expect((await submit()).status).toBe(409);
+  expect(mocks.apply).not.toHaveBeenCalled();
+});
 it("confirms approval only with its bound pending source-checked review", async () => {
   approval();
   expect((await submit()).status).toBe(200);
