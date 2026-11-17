@@ -13,3 +13,7 @@ contracts/award/test_snapshots/
 .ruff_cache/
 coverage.xml
 htmlcov/
+web/.env.local
+web/node_modules/
+supabase/.temp/
+supabase/.branches/

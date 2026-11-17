@@ -1,0 +1,297 @@
+@import "./tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--green);
+}
+
+:focus-visible {
+  outline: 3px solid var(--coral);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0.75rem 1rem;
+}
+
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+}
+
+.testnet-banner {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--green);
+  color: var(--ivory);
+  text-align: center;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 0.4rem 0.75rem;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: var(--sidebar) 1fr;
+  min-height: calc(100vh - 28px);
+}
+
+.sidebar {
+  background: var(--green);
+  color: var(--ivory);
+  padding: 1.75rem 1rem;
+}
+
+.sidebar .brand {
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  margin: 0 0 1.5rem;
+  color: #fff9e8;
+}
+
+.sidebar .brand span {
+  color: var(--coral);
+}
+
+.sidebar nav a {
+  display: block;
+  color: #e8eddf;
+  text-decoration: none;
+  padding: 0.8rem 0.75rem;
+  border-radius: 8px;
+  margin: 0.25rem 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 0.9rem;
+}
+
+.sidebar nav a[aria-current="page"] {
+  background: #f7efd5;
+  color: #214a3b;
+}
+
+.main {
+  padding: 1.75rem 2.25rem 2.5rem;
+  max-width: 1600px;
+}
+
+.page-heading h1 {
+  font-size: 2rem;
+  letter-spacing: -0.04em;
+  margin: 0 0 0.5rem;
+}
+
+.lead {
+  color: var(--muted);
+  margin: 0 0 1.5rem;
+  max-width: 40rem;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 0.9rem;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--coral);
+  background: var(--coral);
+  color: #182f26;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.button.secondary {
+  background: var(--surface);
+  border-color: #d8dbcf;
+  color: var(--green);
+}
+
+.button.quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--green);
+  text-decoration: underline;
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.field input,
+.field select,
+.field textarea {
+  min-height: 2.5rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+
+.status-pill {
+  display: inline-block;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid #d8dfd0;
+  border-radius: 4px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.1rem;
+  min-height: 7rem;
+}
+
+.metric-card strong {
+  display: block;
+  font-size: 1.7rem;
+  letter-spacing: -0.03em;
+}
+
+.metric-card span {
+  display: block;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.metric-card.featured {
+  background: var(--green);
+  color: var(--ivory);
+}
+
+.metric-card.featured span {
+  color: #d3dfc9;
+}
+
+.notice {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  background: var(--soft);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 0.85rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--muted);
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.tracker {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tracker li {
+  padding: 0.55rem 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.tracker li[data-mark="done"] {
+  color: var(--muted);
+}
+
+.tracker li[data-mark="current"] {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.auth-card {
+  max-width: 26rem;
+  margin: 3rem auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+}
+
+.demo-label {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    padding: 1rem;
+  }
+
+  .main {
+    padding: 1.25rem 1rem 2rem;
+  }
+
+  .page-heading h1 {
+    font-size: 1.7rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

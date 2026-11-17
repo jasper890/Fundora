@@ -1,10 +1,10 @@
 # Proposed HTTP interfaces
 
-Status: Task 4 pipeline is implemented locally; real-wallet and live Testnet checks remain open. This contract covers the routes listed in [system plan §5](../ProofPay_System_and_Implementation_Plan.md). The system plan governs roles, states, and fund rules. These JSON shapes make its pipeline concrete; they add no new payment feature.
+Status: Task 4 pipeline shapes remain authoritative for prepare/submit/status/abandon. **Runtime note (17 Nov 2026):** the target app is Next.js + Supabase Auth ([ADR-0001](decisions/0001-nextjs-supabase-runtime.md)). Session cookies replace Django sessions; mutating handlers require a matching `Origin` instead of Django CSRF. Chain error bodies keep `{"error":"CODE"}`. Other JSON uses `{error:{code,message,fields}}`. Live Testnet checks remain open.
 
 ## Common rules
 
-Use authenticated Django sessions and CSRF protection on every write. Browser forms use normal CSRF tokens; JSON writes use `X-CSRFToken`. Reject unexpected keys and malformed types with 400. UUIDs are opaque resource IDs, never proof of access. Scope objects before returning details. Unrelated users get 404; known authorized objects with forbidden actions get 403. JSON endpoints return 401 for an expired/missing session; HTML pages redirect to login.
+Use authenticated sessions on every write. Reject unexpected keys and malformed types with 400. UUIDs are opaque resource IDs, never proof of access. Scope objects before returning details. Unrelated users get 404; known authorized objects with forbidden actions get 403. JSON endpoints return 401 for an expired/missing session; HTML pages redirect to login.
 
 Decimal strings encode amount, chain version, fee, and ledger timestamp. Revision is an integer from 1 through u32 max. Evidence digests are exactly 64 hexadecimal characters. Enforce request-body limits in app and proxy; signed-XDR JSON max 256 KiB, action JSON max 16 KiB. Decode and validate XDR regardless of body size. Evidence upload has the existing limit of three files at 5 MiB each, plus bounded multipart overhead; reject excess before persisting files.
 

@@ -1,0 +1,20 @@
+:root {
+  --bg: #f0efe9;
+  --surface: #fcfbf7;
+  --ink: #173e32;
+  --muted: #606d63;
+  --line: #dedfd6;
+  --green: #204e3e;
+  --soft: #e9eee4;
+  --coral: #ed7747;
+  --sidebar: 244px;
+  --radius: 12px;
+  --space: 20px;
+  --ivory: #fff9e8;
+  --paper: #fffdf8;
+}
+
+/* Contrast notes (WCAG AA targets, measured against intended pairs):
+   coral #ed7747 on ink #182f26 for primary buttons — dark text on coral.
+   green #204e3e on ivory #fff9e8 for sidebar / featured stats.
+*/
