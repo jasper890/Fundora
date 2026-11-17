@@ -1,0 +1,9 @@
+node_modules
+.next
+.next-e2e
+test-results
+.vercel
+.env*
+scripts/_tmp_*
+coverage
+*.tsbuildinfo

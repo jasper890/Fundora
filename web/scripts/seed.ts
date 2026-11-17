@@ -60,8 +60,17 @@ async function main() {
     throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, or DATABASE_URL");
   }
   const localHosts = new Set(["127.0.0.1", "localhost", "[::1]"]);
-  if (!localHosts.has(new URL(url).hostname) || !localHosts.has(new URL(dbUrl).hostname)) {
-    throw new Error("Synthetic seeding is local-only. It does not copy or seed hosted data.");
+  const urlHost = new URL(url).hostname;
+  const dbHost = new URL(dbUrl).hostname;
+  const localOnly = localHosts.has(urlHost) && localHosts.has(dbHost);
+  const allowHosted =
+    process.env.PROOFPAY_ALLOW_HOSTED_SEED === "1" &&
+    urlHost.endsWith(".supabase.co") &&
+    (dbHost.endsWith(".supabase.co") || dbHost.includes("pooler.supabase.com"));
+  if (!localOnly && !allowHosted) {
+    throw new Error(
+      "Synthetic seeding is local-only unless PROOFPAY_ALLOW_HOSTED_SEED=1 against a Supabase hosted project.",
+    );
   }
 
   const admin = createClient(url, service, {
