@@ -166,3 +166,19 @@ The Task 6 browser suite uses pinned development dependency Playwright 1.64.1 wi
 - NOT RUN: full Testnet funding/submission/approval/payout/duplicate/refund demo, controlled archive restoration/TTL extension, and demo video. The 12-address setup was explicitly deferred; no network writes were made.
 
 See [DEMO_RECORD.md](DEMO_RECORD.md) for clean local setup steps and the outside-tester scenario. Task 6 remains incomplete until the outside usability gate and the documented handoff requirements are actually met. Task 5 also remains incomplete without real evidence for its recovery and Testnet gates.
+
+## Task 6 Next.js workspace integration checkpoint - 18 November 2026
+
+Branch: `codex/integrate-table-first-workspace`, based on `origin/dev` commit `634ec19719269635c4e905676ddac3b4846b7008`. This integrates the sponsor register and award detail into `web/`; it does not alter signing, submission, reconciliation or contract behavior.
+
+- PASSED: `npm.cmd run typecheck` - TypeScript completed without errors.
+- PASSED: `npm.cmd run build` - Next.js 16.4.6 compiled and generated the app route table.
+- PASSED: `npm.cmd run lint` - no lint errors. Two pre-existing warnings remain in `components/WalletPanel.tsx` (unused `router`) and `lib/db.ts` (unused eslint-disable).
+- PASSED: `npm.cmd test -- tests/workspace.test.ts` - 7 tests passed for the three register views, counts, confirmed funding, search/status/sort, and safe return paths. The search helper was verified red then green.
+- FAILED (pre-existing): `npm.cmd test` - 142 passed, 1 failed. `tests/wallet-validation.test.ts` tries to read the absent `static_src/wallet_validation.ts`, removed by the earlier app cutover. The same failure occurred on the fetched baseline before this integration (135 passed, 1 failed).
+- PASSED: `git diff --check` - no whitespace errors.
+- BLOCKED before browser tests: `npm.cmd run test:isolated` exited while starting Supabase. The wrapper suppresses private CLI output; the Docker executable is unavailable in this environment. No listeners remained on the isolated test ports after the attempt. No browser assertions ran.
+- NOT RUN: browser walkthrough for sponsor register filters/focus, role routes, unknown payout after reload and hold state. Coverage is added in `web/e2e/workspace.spec.ts`; rerun with Docker available using `npm.cmd run test:isolated` from `web/`.
+- NOT RUN: Testnet wallet signing or submission. No chain transaction, deployment or real wallet material was used.
+
+The full unit failure is outside this change. The browser blocker does not establish a pass or a product failure; it requires a local Docker runtime to run the isolated Supabase fixture. Task 6's outside usability, Testnet and staging gates remain separate and open.

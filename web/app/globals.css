@@ -1618,3 +1618,123 @@ th {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Sponsor workspace: compact summary with one responsive award register. */
+.sponsor-workspace { display: flex; flex-direction: column; gap: 1rem; }
+.sponsor-funding-summary, .sponsor-register { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.sponsor-funding-summary { padding: 1rem 1.15rem 0.8rem; }
+.sponsor-summary-heading, .sponsor-register-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.sponsor-summary-heading h2, .sponsor-register-header h2 { margin: 0.2rem 0 0; }
+.sponsor-testnet-note, .sponsor-summary-note, .sponsor-register-header p { color: var(--muted); font-size: 0.82rem; }
+.sponsor-testnet-note { padding-top: 0.25rem; }
+.sponsor-summary-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; margin: 1rem 0 0.8rem; }
+.sponsor-summary-facts > div { min-width: 0; }
+.sponsor-summary-facts dt { color: var(--muted); font-size: 0.78rem; }
+.sponsor-summary-facts dd { margin: 0.3rem 0 0; color: var(--ink); font-size: clamp(1.05rem, 2vw, 1.35rem); font-weight: 700; font-variant-numeric: tabular-nums; }
+.sponsor-summary-facts dd span { font-size: 0.76rem; font-weight: 500; }
+.sponsor-funding-progress { height: 5px; overflow: hidden; border-radius: 999px; background: var(--green-soft); }
+.sponsor-funding-progress span { display: block; height: 100%; border-radius: inherit; background: var(--green); }
+.sponsor-summary-note { margin: 0.55rem 0 0; font-size: 0.74rem; }
+.sponsor-register { overflow: hidden; }
+.sponsor-register-header { align-items: center; padding: 1rem 1.15rem 0.75rem; }
+.sponsor-register-header p { margin: 0.35rem 0 0; }
+.sponsor-register-views { display: flex; gap: 0.2rem; overflow-x: auto; border-bottom: 1px solid var(--line); padding: 0 1rem; }
+.sponsor-register-view { display: inline-flex; min-height: 44px; align-items: center; gap: 0.5rem; border-bottom: 2px solid transparent; color: var(--muted); padding: 0.55rem 0.7rem; text-decoration: none; white-space: nowrap; }
+.sponsor-register-view:hover { color: var(--ink); background: var(--green-soft); }
+.sponsor-register-view.is-active { border-bottom-color: var(--green); color: var(--green-deep); font-weight: 700; }
+.sponsor-view-count { min-width: 1.5rem; border-radius: 999px; background: var(--green-soft); color: var(--green-deep); padding: 0.08rem 0.4rem; text-align: center; font-size: 0.74rem; font-variant-numeric: tabular-nums; }
+.sponsor-register-filters { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(200px, 1.35fr) minmax(135px, 0.8fr) minmax(130px, 0.8fr) auto; align-items: end; gap: 0.65rem; padding: 0.85rem 1rem 0.7rem; }
+.sponsor-register-filters label { display: grid; min-width: 0; gap: 0.3rem; color: var(--muted); font-size: 0.74rem; }
+.sponsor-register-filters input, .sponsor-register-filters select { width: 100%; min-width: 0; min-height: 42px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); color: var(--ink); padding: 0.55rem 0.65rem; }
+.sponsor-apply-filters { min-height: 42px; white-space: nowrap; }
+.sponsor-register-result { border-top: 1px solid var(--line); color: var(--muted); padding: 0.55rem 1rem; font-size: 0.76rem; }
+.sponsor-table-wrap { width: 100%; overflow-x: auto; }
+.sponsor-award-table { width: 100%; border-collapse: collapse; text-align: left; }
+.sponsor-award-table th, .sponsor-award-table td { border-top: 1px solid var(--line); padding: 0.65rem 0.85rem; vertical-align: middle; }
+.sponsor-award-table thead th { background: var(--green-soft); color: var(--muted); font-size: 0.74rem; font-weight: 650; }
+.sponsor-award-table tbody th { font-weight: 600; }
+.sponsor-award-table tbody tr:hover { background: rgb(232 238 230 / 48%); }
+.sponsor-participant { display: inline-flex; min-width: 0; align-items: center; gap: 0.55rem; overflow-wrap: anywhere; }
+.sponsor-avatar { display: inline-grid; width: 32px; height: 32px; flex: 0 0 32px; place-items: center; border-radius: 50%; background: var(--green-soft); color: var(--green-deep); font-size: 0.82rem; font-weight: 700; }
+.sponsor-amount-cell { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sponsor-amount-cell span, .sponsor-card-heading strong span { color: var(--muted); font-size: 0.75rem; font-weight: 500; }
+.sponsor-status-list { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.sponsor-status { display: inline-flex; min-height: 25px; align-items: center; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); padding: 0.15rem 0.48rem; font-size: 0.7rem; line-height: 1.25; }
+.sponsor-status--paid, .sponsor-status--refunded { border-color: #c6ddca; background: #edf5ec; color: #285c3b; }
+.sponsor-status--approved { border-color: #cbdad3; background: var(--green-soft); color: var(--green-deep); }
+.sponsor-status--warning, .sponsor-status--rejected, .sponsor-status--cancelled { border-color: #ead7bd; background: #fbf3e7; color: #704a22; }
+.sponsor-next-step { min-width: 230px; }
+.sponsor-next-step p, .sponsor-award-card > p { margin: 0 0 0.45rem; color: var(--ink); font-size: 0.82rem; }
+.sponsor-open-award { min-height: 36px; padding: 0.4rem 0.7rem; font-size: 0.76rem; }
+.sponsor-award-cards { display: none; list-style: none; margin: 0; padding: 0; }
+.sponsor-register-empty { display: grid; justify-items: start; gap: 0.45rem; border-top: 1px solid var(--line); padding: 1.2rem; }
+.sponsor-register-empty p { margin: 0 0 0.25rem; color: var(--muted); }
+.sponsor-program-actions { margin-top: 0; }
+@media (max-width: 1050px) {
+  .sponsor-register-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sponsor-search { grid-column: span 2; }
+  .sponsor-apply-filters { justify-self: start; }
+}
+@media (max-width: 700px) {
+  .sponsor-funding-summary { padding: 0.85rem; }
+  .sponsor-summary-heading, .sponsor-register-header { align-items: flex-start; flex-direction: column; }
+  .sponsor-summary-facts { gap: 0.55rem; }
+  .sponsor-summary-facts dd { font-size: 1rem; }
+  .sponsor-summary-facts dd span { display: block; margin-top: 0.12rem; }
+  .sponsor-register-views { padding: 0 0.45rem; }
+  .sponsor-register-view { gap: 0.35rem; padding-right: 0.5rem; padding-left: 0.5rem; font-size: 0.8rem; }
+  .sponsor-register-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); padding-right: 0.75rem; padding-left: 0.75rem; }
+  .sponsor-search { grid-column: span 2; }
+  .sponsor-table-wrap { display: none; }
+  .sponsor-award-cards { display: grid; }
+  .sponsor-award-card { display: grid; gap: 0.5rem; border-top: 1px solid var(--line); padding: 0.85rem; }
+  .sponsor-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+  .sponsor-card-heading strong { text-align: right; font-size: 0.9rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .sponsor-card-heading strong span { display: block; }
+  .sponsor-card-next-label { margin: 0.15rem 0 0 !important; color: var(--muted) !important; font-size: 0.72rem !important; font-weight: 600; }
+  .sponsor-award-card .sponsor-open-award { width: 100%; min-height: 44px; }
+  .sponsor-export { min-height: 42px; }
+}
+@media (max-width: 390px) {
+  .sponsor-summary-facts, .sponsor-register-filters { grid-template-columns: minmax(0, 1fr); }
+  .sponsor-search { grid-column: auto; }
+  .sponsor-register-filters label, .sponsor-register-filters input, .sponsor-register-filters select, .sponsor-apply-filters { width: 100%; }
+  .sponsor-card-heading { align-items: flex-start; flex-direction: column; }
+  .sponsor-card-heading strong { text-align: left; }
+}
+
+.award-return-link { margin-bottom: 0.2rem; }
+.award-primary-panel { display: grid; gap: 1rem; border-color: #cbdad3; background: var(--surface); }
+.award-primary-heading, .award-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.award-primary-heading h2, .award-section-heading h2 { margin: 0.25rem 0 0; }
+.award-reference-id { color: var(--muted); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.award-current-copy { border-left: 3px solid var(--green); padding: 0.15rem 0 0.15rem 0.85rem; }
+.award-current-copy > p { margin: 0.45rem 0 0; }
+.award-status-note { color: #76512a; }
+.award-evidence-progress, .award-action-deadline { color: var(--muted); font-size: 0.82rem; }
+.award-progress-block h3, .award-role-action h3, .award-wallet-actions h3 { margin: 0 0 0.65rem; font-size: 1rem; }
+.award-role-action, .award-wallet-actions { border-top: 1px solid var(--line); padding-top: 0.9rem; }
+.award-role-action .lead { margin: 0.35rem 0 0.65rem; }
+.award-wallet-actions > :last-child { margin-bottom: 0; }
+.award-recent-activity { padding: 1rem 1.15rem; }
+.award-section-heading { margin-bottom: 0.8rem; }
+.award-recent-list { display: grid; gap: 0; list-style: none; margin: 0; padding: 0; }
+.award-recent-list li { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.8rem; border-top: 1px solid var(--line); padding: 0.75rem 0; }
+.award-recent-list li:first-child { border-top: 0; }
+.award-recent-list p { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.78rem; }
+.award-recent-meta { color: var(--muted); font-size: 0.76rem; text-align: right; }
+.award-reference-details { padding: 0; overflow: hidden; }
+.award-reference-details > summary { cursor: pointer; padding: 1rem 1.15rem; font-weight: 700; }
+.award-reference-details[open] > summary { border-bottom: 1px solid var(--line); }
+.award-reference-content { padding: 0 1.15rem 1rem; }
+.award-reference-content dl { display: grid; grid-template-columns: minmax(140px, 0.5fr) minmax(0, 1fr); gap: 0.45rem 1rem; }
+.award-reference-content dt { color: var(--muted); }
+.award-reference-content dd { margin: 0; }
+@media (max-width: 700px) {
+  .award-primary-heading, .award-section-heading { align-items: flex-start; flex-direction: column; }
+  .award-section-heading .button { width: 100%; }
+  .award-recent-list li { flex-direction: column; }
+  .award-recent-meta { text-align: left; }
+  .award-reference-content dl { grid-template-columns: minmax(0, 1fr); gap: 0.2rem; }
+  .award-reference-content dd { margin-bottom: 0.4rem; }
+}
