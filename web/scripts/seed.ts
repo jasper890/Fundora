@@ -75,6 +75,13 @@ async function main() {
   }
 
   const wallets = Array.from({ length: 12 }, () => Keypair.random().publicKey());
+  // Optional Freighter-aligned overrides for local Testnet signing.
+  if (process.env.SEED_SPONSOR_WALLET) wallets[0] = process.env.SEED_SPONSOR_WALLET;
+  if (process.env.SEED_VERIFIER_WALLET) wallets[1] = process.env.SEED_VERIFIER_WALLET;
+  for (let i = 0; i < 10; i += 1) {
+    const key = process.env[`SEED_RECIPIENT_${String(i + 1).padStart(2, "0")}_WALLET`];
+    if (key) wallets[i + 2] = key;
+  }
 
   await sql`
     insert into app_user (id, username, is_staff, is_active)
@@ -92,8 +99,19 @@ async function main() {
   const title = `Synthetic ProofPay workshop (${PREFIX})`;
   const existing = await sql`select id from program where title = ${title} limit 1`;
   if (existing.length) {
-    console.log(`Existing synthetic program: ${existing[0].id}`);
-    console.log(`Password for all demo users: (SEED_PASSWORD / default)`);
+    const programId = existing[0].id as string;
+    // Refresh wallet overrides so Freighter keys can be applied without reseed wipe.
+    for (let i = 0; i < 12; i += 1) {
+      await sql`
+        update program_member
+        set public_wallet = ${wallets[i]}
+        where program_id = ${programId}
+          and user_id = ${userIds[i]}
+      `;
+    }
+    console.log(`Existing synthetic program: ${programId}`);
+    console.log(`Wallets refreshed from SEED_*_WALLET env (if set).`);
+    console.log(`Password for all demo users: ${PASSWORD}`);
     await sql.end();
     return;
   }

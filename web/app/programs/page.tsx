@@ -108,14 +108,37 @@ export default async function ProgramsPage() {
         )}
       </section>
 
-      {programs[0] && primaryRole === "SPONSOR" ? (
-        <p style={{ marginTop: "1.5rem" }}>
-          <Link
-            className="button secondary"
-            href={`/programs/${programs[0].id}/create-award`}
-          >
-            Create award
-          </Link>
+      {programs[0] ? (
+        <p style={{ marginTop: "1.5rem", display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+          {primaryRole === "SPONSOR" || primaryRole === "VERIFIER" ? (
+            <>
+              <a
+                className="button secondary"
+                href={`/api/v1/programs/${programs[0].id}/export?format=csv`}
+              >
+                Export CSV
+              </a>
+              <a
+                className="button secondary"
+                href={`/api/v1/programs/${programs[0].id}/export?format=json`}
+              >
+                Export JSON
+              </a>
+            </>
+          ) : null}
+          {primaryRole === "SPONSOR" ? (
+            <Link
+              className="button secondary"
+              href={`/programs/${programs[0].id}/create-award`}
+            >
+              Create award
+            </Link>
+          ) : null}
+          {user.is_staff ? (
+            <Link className="button secondary" href="/admin">
+              Admin
+            </Link>
+          ) : null}
         </p>
       ) : null}
     </AppShell>

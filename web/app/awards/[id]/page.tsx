@@ -177,6 +177,15 @@ export default async function AwardPage({
           hasLedger={Boolean(award.last_confirmed_ledger)}
           expectedVersion={String(award.version)}
           evidenceId={award.latest_evidence_id}
+          assignedWallet={
+            isSponsor
+              ? award.sponsor_member.public_wallet
+              : isVerifier
+                ? award.verifier_member.public_wallet
+                : isRecipient
+                  ? award.recipient_member.public_wallet
+                  : null
+          }
         />
       </section>
 
