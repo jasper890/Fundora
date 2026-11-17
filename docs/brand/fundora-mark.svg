@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Fundora mark">
-  <title>Fundora</title>
-  <!-- Primary F spine + top bar -->
-  <path fill="#0B3D3A" d="M12 10h34c2.2 0 4 1.8 4 4v3.5c0 1.5-1.2 2.7-2.7 2.7H22.5V30H41c1.8 0 3.2 1.4 3.2 3.2v3.1c0 1.8-1.4 3.2-3.2 3.2H22.5V54c0 2.2-1.8 4-4 4H16c-2.2 0-4-1.8-4-4V14c0-2.2 1.8-4 4-4z"/>
-  <!-- Accent arrow (progress) -->
-  <path fill="#F26B1F" d="M28 20.5h18.5L54 30 46.5 39.5H28l7.2-9.5L28 20.5z"/>
-</svg>
