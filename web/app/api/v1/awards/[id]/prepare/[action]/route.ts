@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ChainError, NETWORK_PASSPHRASE, ROLES } from "@/lib/chain/constants";
 import { validateIntent } from "@/lib/chain/intent";
-import { createRpc, useFakeRpc } from "@/lib/chain/gateway";
+import { createRpc, isFakeRpc } from "@/lib/chain/gateway";
 import { LiveRpc } from "@/lib/chain/live";
 import { constructorManifest } from "@/lib/chain/manifest";
 import { sql } from "@/lib/db";
@@ -151,7 +151,7 @@ export async function POST(
       verifier_hold: Boolean(row.verifier_hold),
     };
 
-    const fake = useFakeRpc();
+    const fake = isFakeRpc();
     let envelope;
     let mode: "fakerpc" | "live" = "fakerpc";
     let manifest: Record<string, unknown> | null = null;

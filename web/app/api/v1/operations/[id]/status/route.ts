@@ -2,6 +2,7 @@ import { reconcileOperation } from "@/lib/chain/reconcile";
 import { sql } from "@/lib/db";
 import { jsonError, jsonOk, requireSameOrigin } from "@/lib/http";
 import { loadAppUserByAuthId } from "@/lib/awards/queries";
+import { canReadOperationStatus } from "@/lib/permissions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET(
@@ -28,21 +29,49 @@ export async function GET(
   `) as unknown as { id: string; actor_id: string; award_id: string }[];
   const op = rows[0];
   if (!op) return jsonError("NOT_FOUND", 404);
-  if (op.actor_id !== appUser.id && !appUser.is_staff) {
-    // Sponsor/verifier may poll after confirming membership on the award.
-    const access = (await db`
-      select 1
+  if (op.actor_id !== appUser.id) {
+    const rows = (await db`
+      select
+        a.verifier_sync_required,
+        sm.user_id as sponsor_user_id, sm.role as sponsor_role,
+        sm.active as sponsor_active, sm.public_wallet as sponsor_wallet,
+        vm.user_id as verifier_user_id, vm.role as verifier_role,
+        vm.active as verifier_active, vm.public_wallet as verifier_wallet
       from award a
       join program_member sm on sm.id = a.sponsor_member_id
       join program_member vm on vm.id = a.verifier_member_id
       where a.id = ${op.award_id}
-        and (
-          (sm.user_id = ${appUser.id} and sm.active)
-          or (vm.user_id = ${appUser.id} and vm.active and a.verifier_sync_required = false)
-        )
       limit 1
-    `) as unknown as unknown[];
-    if (!access[0]) return jsonError("FORBIDDEN", 403);
+    `) as unknown as {
+      verifier_sync_required: boolean;
+      sponsor_user_id: string; sponsor_role: "SPONSOR" | "VERIFIER" | "RECIPIENT";
+      sponsor_active: boolean; sponsor_wallet: string;
+      verifier_user_id: string; verifier_role: "SPONSOR" | "VERIFIER" | "RECIPIENT";
+      verifier_active: boolean; verifier_wallet: string;
+    }[];
+    const row = rows[0];
+    const allowed = row && canReadOperationStatus(appUser, op.actor_id, {
+      verifier_sync_required: row.verifier_sync_required,
+      sponsor_member: {
+        user_id: row.sponsor_user_id,
+        role: row.sponsor_role,
+        active: row.sponsor_active,
+        public_wallet: row.sponsor_wallet,
+      },
+      verifier_member: {
+        user_id: row.verifier_user_id,
+        role: row.verifier_role,
+        active: row.verifier_active,
+        public_wallet: row.verifier_wallet,
+      },
+      recipient_member: {
+        user_id: "",
+        role: "RECIPIENT",
+        active: false,
+        public_wallet: "",
+      },
+    });
+    if (!allowed) return jsonError("NOT_FOUND", 404);
   }
 
   await reconcileOperation(id);

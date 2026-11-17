@@ -27,6 +27,7 @@ export function LoginForm({ door }: { door: string }) {
     });
     const data = (await response.json().catch(() => ({}))) as {
       error?: { message?: string } | string;
+      password_change_required?: boolean;
     };
     setPending(false);
     if (!response.ok) {
@@ -37,7 +38,7 @@ export function LoginForm({ door }: { door: string }) {
       setError(message);
       return;
     }
-    router.replace("/programs");
+    router.replace(data.password_change_required ? "/password-change" : "/programs");
     router.refresh();
   }
 

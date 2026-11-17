@@ -13,6 +13,7 @@ import {
   StrKey,
   TransactionBuilder,
   nativeToScVal,
+  scValToNative,
   rpc,
   xdr,
 } from "@stellar/stellar-sdk";
@@ -56,6 +57,11 @@ function nativeTokenContractId(): string {
   return Asset.native().contractId(NETWORK);
 }
 
+function bytesHex(value: unknown): string {
+  if (value instanceof Uint8Array) return Buffer.from(value).toString("hex");
+  throw new ChainError("STATE_UNAVAILABLE", 503);
+}
+
 export class LiveRpc implements RpcGateway {
   server: rpc.Server;
 
@@ -66,13 +72,44 @@ export class LiveRpc implements RpcGateway {
   async verifyNetwork(): Promise<string> {
     const configured = process.env.STELLAR_NETWORK_PASSPHRASE || NETWORK;
     if (configured !== NETWORK) throw new ChainError("WRONG_NETWORK");
+    const actual = await this.server.getNetwork();
+    if (actual.passphrase !== NETWORK) throw new ChainError("WRONG_NETWORK");
     const token = nativeTokenContractId();
-    // Presence of native SAC is assumed on public Testnet; deeper checks match Django later.
+    const response = await this.server.getLedgerEntries(new Contract(token).getFootprint());
+    const data = response.entries[0]?.val;
+    if (data?.type !== "contractData" || data.contractData.val.type !== "scvContractInstance" ||
+      data.contractData.val.instance.executable.type !== "contractExecutableStellarAsset") throw new ChainError("WRONG_TOKEN");
     return token;
   }
 
-  async readAward(): Promise<AwardSnapshot> {
-    throw new ChainError("STATE_UNAVAILABLE", 503);
+  async readAward(contractId: string | null): Promise<AwardSnapshot> {
+    if (!contractId || !isContractId(contractId)) throw new ChainError("DEPLOYMENT_UNAVAILABLE", 409);
+    const token = await this.verifyNetwork();
+    const response = await this.server.getLedgerEntries(new Contract(contractId).getFootprint());
+    const data = response.entries[0]?.val;
+    if (data?.type !== "contractData" || data.contractData.val.type !== "scvContractInstance") throw new ChainError("STATE_UNAVAILABLE", 503);
+    const instance = data.contractData.val.instance;
+    if (instance.executable.type !== "contractExecutableWasm" || Buffer.from(instance.executable.wasmHash.value).toString("hex") !== wasmHash()) throw new ChainError("WRONG_CODE_HASH");
+    const entry = instance.storage?.find((item) => {
+      const key = scValToNative(item.key);
+      return Array.isArray(key) && key.length === 1 && key[0] === "State";
+    });
+    if (!entry) throw new ChainError("STATE_UNAVAILABLE", 503);
+    const state = scValToNative(entry.val) as Record<string, unknown>;
+    if (!state || typeof state !== "object") throw new ChainError("STATE_UNAVAILABLE", 503);
+    if (String(state.amount) !== "200000000" || state.token !== token) throw new ChainError("WRONG_TOKEN");
+    const latest = await this.server.getLatestLedger();
+    const statusValue = Array.isArray(state.status) ? state.status[0] : state.status;
+    const status = String(statusValue).toUpperCase() as AwardSnapshot["status"];
+    const version = Number(state.version);
+    const evidenceRevision = Number(state.evidence_revision);
+    const timestamp = Number(latest.closeTime);
+    if (!["CREATED", "FUNDED", "SUBMITTED", "APPROVED", "REJECTED", "PAID", "REFUNDED", "CANCELLED"].includes(status) ||
+      !Number.isSafeInteger(version) || version < 0 || !Number.isSafeInteger(evidenceRevision) || evidenceRevision < 0 ||
+      !Number.isSafeInteger(timestamp) || timestamp < 0) throw new ChainError("STATE_UNAVAILABLE", 503);
+    return { status, version, evidence_revision: evidenceRevision,
+      evidence_digest: state.evidence_digest ? bytesHex(state.evidence_digest).toLowerCase() : null,
+      verifier: String(state.verifier), sponsor_hold: Boolean(state.sponsor_hold), verifier_hold: Boolean(state.verifier_hold), timestamp };
   }
 
   async prepare(args: {
@@ -161,14 +198,13 @@ export class LiveRpc implements RpcGateway {
     if (prepared.signatures.length) throw new ChainError("INVALID_PREPARATION");
     if (prepared.operations.length !== 1) throw new ChainError("INVALID_PREPARATION");
     const fee = Number(prepared.fee);
-    if (fee <= 0 || fee > maxFee) throw new ChainError("FEE_CEILING");
+    if (!Number.isSafeInteger(fee) || !Number.isFinite(maxFee) || fee <= 0 || fee > maxFee) throw new ChainError("FEE_CEILING");
 
     // Auth must be source-account only (Django check).
     const op = prepared.operations[0] as { auth?: unknown[] };
     for (const auth of op.auth ?? []) {
-      const entry = auth as { credentials?: { switch?: () => { name: string } } };
-      const name = entry.credentials?.switch?.().name;
-      if (name && name !== "sorobanCredentialsSourceAccount") {
+      const entry = auth as { credentials?: { type?: string } };
+      if (entry.credentials?.type !== "sorobanCredentialsSourceAccount") {
         throw new ChainError("UNSUPPORTED_AUTH");
       }
     }
@@ -190,20 +226,16 @@ export class LiveRpc implements RpcGateway {
     };
   }
 
-  async submit(signedXdr: string): Promise<{ hash: string }> {
-    await this.verifyNetwork();
-    if (process.env.STELLAR_ALLOW_SUBMISSION !== "1") {
-      throw new ChainError("NETWORK_SUBMISSION_DISABLED", 403);
-    }
-    const send = await this.server.sendTransaction(
-      // TransactionBuilder.fromXDR is the typed path; cast via rpc helpers.
-      TransactionBuilder.fromXDR(signedXdr, NETWORK) as never,
-    );
-    return { hash: send.hash };
+  async submit(_signedXdr: string): Promise<{ hash: string }> {
+    // shortcut: live submission stays disabled until prepare/reconcile review gates pass; remove only after independent approval.
+    throw new ChainError("LIVE_SUBMISSION_REVIEW_REQUIRED", 403);
   }
 
   async getTransaction(hash: string): Promise<TxOutcome> {
     const result = await this.server.getTransaction(hash);
+    if (result.txHash.toLowerCase() !== hash.toLowerCase()) {
+      throw new ChainError("TRANSACTION_MISMATCH", 503);
+    }
     if (result.status === rpc.Api.GetTransactionStatus.FAILED) {
       return { status: "FAILED" };
     }

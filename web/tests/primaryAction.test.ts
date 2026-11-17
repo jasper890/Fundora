@@ -1,77 +1,118 @@
 import { describe, expect, it } from "vitest";
-import { primaryPrepareAction } from "@/lib/wallet/primaryAction";
+import {
+  primaryPrepareAction,
+  type ActionContext,
+} from "@/lib/wallet/primaryAction";
+
+const now = Date.parse("2026-11-17T00:00:00Z");
+const deadlines = {
+  claimDeadline: new Date(now + 60_000).toISOString(),
+  reviewDeadline: new Date(now + 120_000).toISOString(),
+  payoutDeadline: new Date(now + 180_000).toISOString(),
+};
+
+function context(overrides: Partial<ActionContext> = {}): ActionContext {
+  return {
+    role: "SPONSOR",
+    status: "CREATED",
+    hasLedger: true,
+    hasHold: false,
+    verifierSyncRequired: false,
+    ...deadlines,
+    now,
+    ...overrides,
+  };
+}
 
 describe("primaryPrepareAction", () => {
-  it("offers DEPLOY for sponsor without ledger", () => {
+  it("offers deployment before the immutable claim deadline", () => {
+    expect(primaryPrepareAction(context({ hasLedger: false }))?.action).toBe(
+      "DEPLOY",
+    );
     expect(
       primaryPrepareAction({
-        role: "SPONSOR",
-        status: "CREATED",
-        hasLedger: false,
+        ...context({ hasLedger: false }),
+        now: Date.parse(deadlines.claimDeadline),
       }),
-    ).toEqual({ action: "DEPLOY", label: "Review award deployment" });
+    ).toBeNull();
   });
 
-  it("offers FUND not PAY after deploy for CREATED", () => {
+  it("offers funding through the exact claim deadline", () => {
+    expect(primaryPrepareAction(context())?.action).toBe("FUND");
     expect(
       primaryPrepareAction({
-        role: "SPONSOR",
-        status: "CREATED",
-        hasLedger: true,
+        ...context(),
+        now: Date.parse(deadlines.claimDeadline),
       })?.action,
     ).toBe("FUND");
-  });
-
-  it("offers PAY only when APPROVED", () => {
     expect(
       primaryPrepareAction({
-        role: "SPONSOR",
-        status: "FUNDED",
-        hasLedger: true,
+        ...context(),
+        now: Date.parse(deadlines.claimDeadline) + 1,
       }),
     ).toBeNull();
+  });
+
+  it("blocks payment when held or after the payout deadline", () => {
     expect(
-      primaryPrepareAction({
-        role: "SPONSOR",
-        status: "APPROVED",
-        hasLedger: true,
-      })?.action,
+      primaryPrepareAction(context({ status: "APPROVED" }))?.action,
     ).toBe("PAY");
-  });
-
-  it("offers SUBMIT for recipient when evidence exists", () => {
     expect(
-      primaryPrepareAction({
-        role: "RECIPIENT",
-        status: "FUNDED",
-        hasLedger: true,
-        hasEvidence: false,
-      }),
+      primaryPrepareAction(context({ status: "APPROVED", hasHold: true })),
     ).toBeNull();
     expect(
       primaryPrepareAction({
-        role: "RECIPIENT",
-        status: "FUNDED",
-        hasLedger: true,
-        hasEvidence: true,
-      })?.action,
-    ).toBe("SUBMIT");
+        ...context({ status: "APPROVED" }),
+        now: Date.parse(deadlines.payoutDeadline) + 1,
+      }),
+    ).toBeNull();
   });
 
-  it("offers APPROVE for verifier only when SUBMITTED", () => {
+  it("offers submission only for a new evidence revision before claim cutoff", () => {
+    const recipient = context({
+      role: "RECIPIENT",
+      status: "FUNDED",
+      hasEvidence: true,
+    });
+    expect(primaryPrepareAction(recipient)?.action).toBe("SUBMIT");
     expect(
-      primaryPrepareAction({
-        role: "VERIFIER",
-        status: "FUNDED",
-        hasLedger: true,
-      }),
+      primaryPrepareAction({ ...recipient, hasEvidence: false }),
     ).toBeNull();
     expect(
       primaryPrepareAction({
-        role: "VERIFIER",
+        ...recipient,
         status: "SUBMITTED",
-        hasLedger: true,
-      })?.action,
-    ).toBe("APPROVE");
+        now: Date.parse(deadlines.claimDeadline) + 1,
+      }),
+    ).toBeNull();
+  });
+
+  it("blocks approval while held or after the review deadline", () => {
+    const verifier = context({ role: "VERIFIER", status: "SUBMITTED" });
+    expect(primaryPrepareAction(verifier)?.action).toBe("APPROVE");
+    expect(
+      primaryPrepareAction({ ...verifier, hasHold: true }),
+    ).toBeNull();
+    expect(
+      primaryPrepareAction({
+        ...verifier,
+        now: Date.parse(deadlines.reviewDeadline) + 1,
+      }),
+    ).toBeNull();
+  });
+
+  it("offers no primary action for terminal awards or a stale verifier", () => {
+    for (const status of ["PAID", "REFUNDED", "CANCELLED"] as const) {
+      expect(primaryPrepareAction(context({ status }))).toBeNull();
+    }
+    expect(
+      primaryPrepareAction(
+        context({
+          role: "VERIFIER",
+          status: "SUBMITTED",
+          verifierSyncRequired: true,
+        }),
+      ),
+    ).toBeNull();
   });
 });

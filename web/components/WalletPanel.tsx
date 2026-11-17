@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "./Button";
 import { ChainPreview } from "./ChainPreview";
 import { Notice } from "./Notice";
@@ -32,7 +33,29 @@ type Props = {
   expectedVersion?: string;
   evidenceId?: string | null;
   assignedWallet?: string | null;
+  ownHold: boolean;
+  hasHold: boolean;
+  verifierSyncRequired: boolean;
+  claimDeadline: string;
+  reviewDeadline: string;
+  payoutDeadline: string;
+  replacementVerifierOptions: {
+    id: string;
+    username: string;
+    wallet: string;
+  }[];
 };
+
+const deadlineFormatter = new Intl.DateTimeFormat("en-SG", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "Asia/Singapore",
+});
+
+function formatDeadline(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Unavailable" : deadlineFormatter.format(date);
+}
 
 function formatApiError(data: unknown, fallback: string): string {
   if (!data || typeof data !== "object") return fallback;
@@ -49,6 +72,7 @@ function formatApiError(data: unknown, fallback: string): string {
 }
 
 export function WalletPanel(props: Props) {
+  const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null);
   const [operationId, setOperationId] = useState<string | null>(null);
@@ -69,6 +93,11 @@ export function WalletPanel(props: Props) {
     status: props.awardStatus,
     hasLedger: props.hasLedger,
     hasEvidence: Boolean(props.evidenceId),
+    hasHold: props.hasHold,
+    verifierSyncRequired: props.verifierSyncRequired,
+    claimDeadline: props.claimDeadline,
+    reviewDeadline: props.reviewDeadline,
+    payoutDeadline: props.payoutDeadline,
   });
 
   const stopPolling = useCallback(() => {

@@ -8,6 +8,9 @@ import { Tracker } from "@/components/Tracker";
 import { WalletPanel } from "@/components/WalletPanel";
 import { sql } from "@/lib/db";
 import { isAwardVisible } from "@/lib/permissions";
+import { loadReplacementVerifierOptions } from "@/lib/awards/program";
+import { loadEvidenceHistoryForUser } from "@/lib/awards/queries";
+import { EvidenceHistory } from "@/components/EvidenceHistory";
 import {
   nextStep,
   statusLines,
@@ -16,15 +19,34 @@ import {
 import { requireSessionUser } from "@/lib/session";
 import type { AwardView, MemberView, Role } from "@/lib/types";
 
-async function loadAward(id: string): Promise<(AwardView & { verifier_sync_required: boolean; program_title: string; version: number; latest_evidence_id: string | null }) | null> {
+const singaporeDateTime = new Intl.DateTimeFormat("en-SG", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "Asia/Singapore",
+});
+
+function formatDeadline(value: string): string {
+  return singaporeDateTime.format(new Date(value)) + " SGT";
+}
+
+async function loadAward(id: string): Promise<(AwardView & {
+  program_title: string;
+  requirements_text: string;
+  claim_deadline: string;
+  review_deadline: string;
+  payout_deadline: string;
+  version: number;
+  latest_evidence_id: string | null;
+  verifier_member_id: string;
+}) | null> {
   const db = sql();
   const rows = (await db`
     select
-      a.id, a.status, a.version, a.last_confirmed_ledger, a.sponsor_hold, a.verifier_hold,
+      a.id, a.program_id, a.status, a.version, a.last_confirmed_ledger, a.sponsor_hold, a.verifier_hold,
       a.evidence_revision, a.evidence_digest, a.verifier_sync_required,
-      p.title as program_title,
+      p.title as program_title, p.requirements_text, p.claim_deadline, p.review_deadline, p.payout_deadline,
       sm.user_id as sponsor_user_id, sm.role as sponsor_role, sm.active as sponsor_active, sm.public_wallet as sponsor_wallet,
-      vm.user_id as verifier_user_id, vm.role as verifier_role, vm.active as verifier_active, vm.public_wallet as verifier_wallet,
+      vm.id as verifier_member_id, vm.user_id as verifier_user_id, vm.role as verifier_role, vm.active as verifier_active, vm.public_wallet as verifier_wallet,
       rm.user_id as recipient_user_id, rm.role as recipient_role, rm.active as recipient_active, rm.public_wallet as recipient_wallet,
       ev.id as latest_evidence_id, ev.revision as latest_revision, ev.digest as latest_digest,
       exists(
@@ -39,7 +61,7 @@ async function loadAward(id: string): Promise<(AwardView & { verifier_sync_requi
     join program_member rm on rm.id = a.recipient_member_id
     left join lateral (
       select id, revision, digest from evidence_version
-      where award_id = a.id order by revision desc limit 1
+      where award_id = a.id and purged_at is null order by revision desc limit 1
     ) ev on true
     where a.id = ${id}
     limit 1
@@ -59,6 +81,7 @@ async function loadAward(id: string): Promise<(AwardView & { verifier_sync_requi
   });
   return {
     id: String(row.id),
+    program_id: String(row.program_id),
     status: row.status as AwardView["status"],
     version: Number(row.version ?? 0),
     last_confirmed_ledger: (row.last_confirmed_ledger as number | null) ?? null,
@@ -68,6 +91,12 @@ async function loadAward(id: string): Promise<(AwardView & { verifier_sync_requi
     evidence_digest: String(row.evidence_digest),
     verifier_sync_required: Boolean(row.verifier_sync_required),
     program_title: String(row.program_title),
+    requirements_text: String(row.requirements_text),
+    claim_deadline: new Date(row.claim_deadline as string | Date).toISOString(),
+    review_deadline: new Date(row.review_deadline as string | Date).toISOString(),
+    payout_deadline: new Date(row.payout_deadline as string | Date).toISOString(),
+    latest_evidence_revision: row.latest_revision == null ? null : Number(row.latest_revision),
+    verifier_member_id: String(row.verifier_member_id),
     latest_evidence_id: row.latest_evidence_id ? String(row.latest_evidence_id) : null,
     sponsor_member: member(
       String(row.sponsor_user_id),
@@ -116,13 +145,24 @@ export default async function AwardPage({
     );
   }
   if (!award || !isAwardVisible(award, user)) notFound();
-
   const lines = statusLines(award);
   const step = nextStep(award, user);
   const steps = trackerSteps(award);
   const isRecipient = award.recipient_member.user_id === user.id;
   const isVerifier = award.verifier_member.user_id === user.id;
   const isSponsor = award.sponsor_member.user_id === user.id;
+  const replacementVerifierOptions = isSponsor
+    ? await loadReplacementVerifierOptions(
+        award.program_id,
+        award.verifier_member_id,
+        award.sponsor_member.user_id,
+        award.recipient_member.user_id,
+      )
+    : [];
+  const evidenceHistory = await loadEvidenceHistoryForUser(award.id, user);
+  const hasEvidenceToSubmit =
+    award.latest_evidence_revision != null &&
+    award.latest_evidence_revision > award.evidence_revision;
   const roleLabel = isSponsor
     ? "SPONSOR"
     : isVerifier
@@ -165,6 +205,17 @@ export default async function AwardPage({
         <div style={{ marginTop: "0.5rem" }}>{step}</div>
       </Notice>
 
+      <section className="award-section">
+        <h2>Program terms and deadlines</h2>
+        <p>{award.requirements_text}</p>
+        <dl>
+          <dt>Claim deadline</dt><dd>{formatDeadline(award.claim_deadline)}</dd>
+          <dt>Review deadline</dt><dd>{formatDeadline(award.review_deadline)}</dd>
+          <dt>Payout deadline</dt><dd>{formatDeadline(award.payout_deadline)}</dd>
+        </dl>
+        <p className="lead">All deadlines are shown in Singapore time (SGT).</p>
+      </section>
+
       {isRecipient ? (
         <section className="award-section">
           <h2>Add a new evidence revision</h2>
@@ -191,6 +242,11 @@ export default async function AwardPage({
       ) : null}
 
       <section className="award-section">
+        <h2>Evidence history</h2>
+        <EvidenceHistory versions={evidenceHistory} />
+      </section>
+
+      <section className="award-section">
         <h2>Progress</h2>
         <Tracker steps={steps} />
       </section>
@@ -203,9 +259,16 @@ export default async function AwardPage({
           isSponsor={isSponsor}
           isRecipient={isRecipient}
           isVerifier={isVerifier}
+          ownHold={isSponsor ? award.sponsor_hold : isVerifier ? award.verifier_hold : false}
+          hasHold={award.sponsor_hold || award.verifier_hold}
+          verifierSyncRequired={award.verifier_sync_required}
+          claimDeadline={award.claim_deadline}
+          reviewDeadline={award.review_deadline}
+          payoutDeadline={award.payout_deadline}
+          replacementVerifierOptions={replacementVerifierOptions}
           hasLedger={Boolean(award.last_confirmed_ledger)}
           expectedVersion={String(award.version)}
-          evidenceId={award.latest_evidence_id}
+          evidenceId={hasEvidenceToSubmit ? award.latest_evidence_id : null}
           assignedWallet={assignedWallet}
         />
       </section>

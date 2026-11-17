@@ -1,4 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
+import { requireIsolatedTestEnvironment } from "./lib/test-isolation";
+
+requireIsolatedTestEnvironment(process.env);
 
 const port = Number(process.env.E2E_PORT || 3001);
 const baseURL = `http://localhost:${port}`;

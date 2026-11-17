@@ -51,9 +51,7 @@ export function validateIntent(
   }
   if (
     action === "REPLACE_VERIFIER" &&
-    (typeof params.new_verifier_member_id !== "number" ||
-      !Number.isInteger(params.new_verifier_member_id) ||
-      params.new_verifier_member_id <= 0)
+    !isUuid(params.new_verifier_member_id)
   ) {
     throw new ChainError("INVALID_PARAMETERS", 400);
   }

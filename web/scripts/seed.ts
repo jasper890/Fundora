@@ -3,13 +3,14 @@
  * Usage: npx tsx scripts/seed.ts
  * Requires env from .env.local (service role + DATABASE_URL).
  */
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { Keypair } from "@stellar/stellar-sdk";
 import postgres from "postgres";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 function loadEnv() {
+  if (process.env.PROOFPAY_TEST_ISOLATED === "1") return;
   const path = resolve(process.cwd(), ".env.local");
   if (!existsSync(path)) return;
   for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
@@ -26,10 +27,11 @@ loadEnv();
 
 const PREFIX = process.env.SEED_PREFIX || "demo";
 const PASSWORD = process.env.SEED_PASSWORD || "ProofPay-Demo-Password-12";
+const recipientCount = process.env.PROOFPAY_TEST_ISOLATED === "1" ? 9 : 10;
 const emailFor = (username: string) => `${username}@users.proofpay.local`;
 
 async function ensureAuthUser(
-  admin: ReturnType<typeof createClient<any>>,
+  admin: SupabaseClient,
   username: string,
   _isStaff = false,
 ) {
@@ -57,6 +59,10 @@ async function main() {
   if (!url || !service || !dbUrl) {
     throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, or DATABASE_URL");
   }
+  const localHosts = new Set(["127.0.0.1", "localhost", "[::1]"]);
+  if (!localHosts.has(new URL(url).hostname) || !localHosts.has(new URL(dbUrl).hostname)) {
+    throw new Error("Synthetic seeding is local-only. It does not copy or seed hosted data.");
+  }
 
   const admin = createClient(url, service, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -66,7 +72,7 @@ async function main() {
   const usernames = [
     `${PREFIX}-sponsor`,
     `${PREFIX}-verifier`,
-    ...Array.from({ length: 10 }, (_, i) => `${PREFIX}-recipient-${String(i + 1).padStart(2, "0")}`),
+    ...Array.from({ length: recipientCount }, (_, i) => `${PREFIX}-recipient-${String(i + 1).padStart(2, "0")}`),
   ];
   const staffId = await ensureAuthUser(admin, `${PREFIX}-admin`, true);
   const userIds: string[] = [];
@@ -84,14 +90,14 @@ async function main() {
   }
 
   await sql`
-    insert into app_user (id, username, is_staff, is_active)
-    values (${staffId}, ${`${PREFIX}-admin`}, true, true)
+    insert into app_user (id, username, is_staff, is_active, must_change_password)
+    values (${staffId}, ${`${PREFIX}-admin`}, true, true, false)
     on conflict (id) do update set username = excluded.username, is_staff = true
   `;
   for (let i = 0; i < usernames.length; i += 1) {
     await sql`
-      insert into app_user (id, username, is_staff, is_active)
-      values (${userIds[i]}, ${usernames[i]}, false, true)
+      insert into app_user (id, username, is_staff, is_active, must_change_password)
+      values (${userIds[i]}, ${usernames[i]}, false, true, false)
       on conflict (id) do update set username = excluded.username
     `;
   }
@@ -100,18 +106,7 @@ async function main() {
   const existing = await sql`select id from program where title = ${title} limit 1`;
   if (existing.length) {
     const programId = existing[0].id as string;
-    // Refresh wallet overrides so Freighter keys can be applied without reseed wipe.
-    for (let i = 0; i < 12; i += 1) {
-      await sql`
-        update program_member
-        set public_wallet = ${wallets[i]}
-        where program_id = ${programId}
-          and user_id = ${userIds[i]}
-      `;
-    }
-    console.log(`Existing synthetic program: ${programId}`);
-    console.log(`Wallets refreshed from SEED_*_WALLET env (if set).`);
-    console.log(`Password for all demo users: ${PASSWORD}`);
+    console.log(`Existing synthetic program: ${programId}; assigned wallets left unchanged.`);
     await sql.end();
     return;
   }
@@ -141,8 +136,8 @@ async function main() {
   const programId = programs[0].id as string;
 
   const memberIds: string[] = [];
-  const roles = ["SPONSOR", "VERIFIER", ...Array(10).fill("RECIPIENT")];
-  for (let i = 0; i < 12; i += 1) {
+  const roles = ["SPONSOR", "VERIFIER", ...Array(recipientCount).fill("RECIPIENT")];
+  for (let i = 0; i < usernames.length; i += 1) {
     const rows = await sql`
       insert into program_member (program_id, user_id, role, public_wallet, active)
       values (${programId}, ${userIds[i]}, ${roles[i]}, ${wallets[i]}, true)
@@ -151,7 +146,7 @@ async function main() {
     memberIds.push(rows[0].id as string);
   }
 
-  for (let i = 2; i < 12; i += 1) {
+  for (let i = 2; i < usernames.length; i += 1) {
     await sql`
       insert into award (
         program_id, sponsor_member_id, verifier_member_id, recipient_member_id,
@@ -164,8 +159,8 @@ async function main() {
   }
 
   console.log(`Synthetic program: ${programId}`);
-  console.log(`Ten awards created. Preview wallets have no retained signing keys.`);
-  console.log(`Demo password: ${PASSWORD}`);
+  console.log(`${recipientCount} awards created. Preview wallets have no retained signing keys.`);
+  console.log("Demo password is supplied locally; it is not printed.");
   console.log(`Try door login as ${PREFIX}-sponsor / ${PREFIX}-verifier / ${PREFIX}-recipient-01`);
   await sql.end();
 }

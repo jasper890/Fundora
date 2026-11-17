@@ -64,3 +64,29 @@ export function requireAwardRole(
   }
   throw new PermissionDeniedError();
 }
+
+export function hasAwardRole(
+  user: AppUser,
+  award: AwardAccess,
+  allowedRoles: Iterable<Role>,
+): boolean {
+  try {
+    requireAwardRole(user, award, allowedRoles);
+    return true;
+  } catch (error) {
+    if (error instanceof PermissionDeniedError) return false;
+    throw error;
+  }
+}
+
+export function canExportAward(user: AppUser, award: AwardAccess): boolean {
+  return hasAwardRole(user, award, ["SPONSOR", "VERIFIER"]);
+}
+
+export function canReadOperationStatus(
+  user: AppUser,
+  actorId: string,
+  award: AwardAccess,
+): boolean {
+  return actorId === user.id || hasAwardRole(user, award, ["SPONSOR", "VERIFIER"]);
+}

@@ -41,11 +41,12 @@ export async function deleteEvidenceObjects(paths: string[]): Promise<void> {
 export async function createEvidenceDownloadUrl(
   path: string,
   expiresIn = 60,
+  filename?: string,
 ): Promise<string> {
   const admin = createSupabaseAdmin();
   const { data, error } = await admin.storage
     .from(EVIDENCE_BUCKET)
-    .createSignedUrl(path, expiresIn);
+    .createSignedUrl(path, expiresIn, { download: filename ?? true });
   if (error || !data?.signedUrl) {
     throw new Error(error?.message || `Failed to sign download for ${path}`);
   }

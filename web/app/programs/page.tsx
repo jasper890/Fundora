@@ -36,7 +36,7 @@ export default async function ProgramsPage() {
   const copy = homeCopy(primaryRole);
   const ordered = sortAwardsForHome(awards, user);
   const upcoming = pickUpcomingAward(ordered, user);
-  const attentionCount = ordered.filter((a) => userActsNow(a, user)).length;
+  const attentionCount = ordered.filter((award) => userActsNow(award, user)).length;
   const counts =
     programs[0] != null
       ? await programCounts(programs[0].id).catch(() => null)
@@ -48,106 +48,117 @@ export default async function ProgramsPage() {
       roleLabel={primaryRole ?? undefined}
       isStaff={user.is_staff}
     >
-      <PageHeading title={copy.page_title} lead={programs[0]?.title} />
-      {dbError ? <Notice>{dbError}</Notice> : null}
+      <div className={"programs-home role-" + (primaryRole?.toLowerCase() ?? "member")}>
+        <PageHeading title={copy.page_title} lead={programs[0]?.title} />
+        {dbError ? <Notice>{dbError}</Notice> : null}
 
-      {counts ? (
-        <div className="metric-grid">
-          <MetricCard label="Created" value={counts.CREATED} />
-          <MetricCard label="Funded" value={counts.FUNDED} />
-          <MetricCard label="Submitted" value={counts.SUBMITTED} />
-          <MetricCard label="Approved" value={counts.APPROVED} />
-          <MetricCard label="Paid" value={counts.PAID} featured />
-          <MetricCard label="Needs you" value={attentionCount} />
-        </div>
-      ) : null}
+        {counts ? (
+          <section className="home-overview" aria-label="Confirmed award activity">
+            <div className="home-overview-heading">
+              <div>
+                <span className="eyebrow">Program activity</span>
+                <h2>Confirmed award status</h2>
+              </div>
+            </div>
+            <div className="metric-grid">
+              <MetricCard label="Created" value={counts.CREATED} />
+              <MetricCard label="Funded" value={counts.FUNDED} />
+              <MetricCard label="Submitted" value={counts.SUBMITTED} />
+              <MetricCard label="Approved" value={counts.APPROVED} />
+              <MetricCard label="Paid" value={counts.PAID} featured />
+              <MetricCard label="Needs you" value={attentionCount} />
+            </div>
+          </section>
+        ) : null}
 
-      <section style={{ marginBottom: "1.75rem" }}>
-        <h2 style={{ fontSize: "1.05rem" }}>{copy.upcoming_title}</h2>
-        {upcoming ? (
-          <div className="notice" style={{ marginTop: "0.75rem" }}>
-            <StatusPill>{statusLines(upcoming)[0]}</StatusPill>
-            <p style={{ margin: "0.75rem 0" }}>{nextStep(upcoming, user)}</p>
-            <Link className="button" href={`/awards/${upcoming.id}`}>
-              {copy.primary_label}
-            </Link>
-          </div>
-        ) : (
-          <EmptyState title={copy.upcoming_title} body={copy.empty_upcoming} />
-        )}
-      </section>
-
-      <section>
-        <h2 style={{ fontSize: "1.05rem" }}>{copy.register_title}</h2>
-        {ordered.length === 0 ? (
-          <EmptyState title={copy.register_title} body={copy.empty_register} />
-        ) : (
-          <ul style={{ listStyle: "none", padding: 0, margin: "1rem 0 0" }}>
-            {ordered.map((award) => (
-              <li
-                key={award.id}
-                style={{
-                  display: "flex",
-                  gap: "1rem",
-                  alignItems: "center",
-                  padding: "0.9rem 0",
-                  borderBottom: "1px solid var(--line)",
-                }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600 }}>
-                    Award {award.id.slice(0, 8)}…
-                  </div>
-                  <div className="lead" style={{ margin: "0.35rem 0 0" }}>
-                    {statusLines(award)[0]}
-                    {userActsNow(award, user) ? " · Needs your action" : ""}
-                  </div>
-                  <div className="lead" style={{ margin: "0.25rem 0 0" }}>
-                    Next: {nextStep(award, user)}
-                  </div>
-                </div>
-                <Link className="button secondary" href={`/awards/${award.id}`}>
-                  Open
+        <div className="home-columns">
+          <section className="home-panel home-upcoming" aria-labelledby="upcoming-heading">
+            <span className="eyebrow">Your next step</span>
+            <h2 id="upcoming-heading">{copy.upcoming_title}</h2>
+            {upcoming ? (
+              <div className="notice">
+                <StatusPill>{statusLines(upcoming)[0]}</StatusPill>
+                <p style={{ margin: "0.75rem 0" }}>{nextStep(upcoming, user)}</p>
+                <Link className="button" href={"/awards/" + upcoming.id}>
+                  {copy.primary_label}
                 </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+              </div>
+            ) : (
+              <EmptyState title={copy.upcoming_title} body={copy.empty_upcoming} />
+            )}
+          </section>
 
-      {programs[0] ? (
-        <p style={{ marginTop: "1.5rem", display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-          {primaryRole === "SPONSOR" || primaryRole === "VERIFIER" ? (
-            <>
-              <a
-                className="button secondary"
-                href={`/api/v1/programs/${programs[0].id}/export?format=csv`}
-              >
-                Export CSV
-              </a>
-              <a
-                className="button secondary"
-                href={`/api/v1/programs/${programs[0].id}/export?format=json`}
-              >
-                Export JSON
-              </a>
-            </>
-          ) : null}
-          {primaryRole === "SPONSOR" ? (
+          <section className="home-panel home-register" aria-labelledby="register-heading">
+            <span className="eyebrow">Award register</span>
+            <h2 id="register-heading">{copy.register_title}</h2>
+            {ordered.length === 0 ? (
+              <EmptyState title={copy.register_title} body={copy.empty_register} />
+            ) : (
+              <ul className="home-register-list">
+                {ordered.map((award) => (
+                  <li key={award.id} className="home-award-row">
+                    <div className="home-award-main">
+                      <div className="home-award-title">
+                        Award {award.id.slice(0, 8)}…
+                      </div>
+                      <p className="home-award-meta">
+                        {statusLines(award)[0]}
+                        {userActsNow(award, user) ? " · Needs your action" : ""}
+                      </p>
+                      <p className="home-award-meta">
+                        Next: {nextStep(award, user)}
+                      </p>
+                    </div>
+                    <Link className="button secondary" href={"/awards/" + award.id}>
+                      Open
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+
+        {programs[0] ? (
+          <nav className="home-actions" aria-label="Program actions">
             <Link
               className="button secondary"
-              href={`/programs/${programs[0].id}/create-award`}
+              href={"/programs/" + programs[0].id}
             >
-              Create award
+              View program details
             </Link>
-          ) : null}
-          {user.is_staff ? (
-            <Link className="button secondary" href="/admin">
-              Admin
-            </Link>
-          ) : null}
-        </p>
-      ) : null}
+            {primaryRole === "SPONSOR" || primaryRole === "VERIFIER" ? (
+              <>
+                <a
+                  className="button secondary"
+                  href={"/api/v1/programs/" + programs[0].id + "/export?format=csv"}
+                >
+                  Export CSV
+                </a>
+                <a
+                  className="button secondary"
+                  href={"/api/v1/programs/" + programs[0].id + "/export?format=json"}
+                >
+                  Export JSON
+                </a>
+              </>
+            ) : null}
+            {primaryRole === "SPONSOR" ? (
+              <Link
+                className="button secondary"
+                href={"/programs/" + programs[0].id + "/create-award"}
+              >
+                Create award
+              </Link>
+            ) : null}
+            {user.is_staff ? (
+              <Link className="button secondary" href="/admin">
+                Admin
+              </Link>
+            ) : null}
+          </nav>
+        ) : null}
+      </div>
     </AppShell>
   );
 }

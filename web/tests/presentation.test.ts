@@ -20,11 +20,13 @@ function member(role: MemberView["role"], userId: string): MemberView {
 function award(partial: Partial<AwardView> & { status: AwardView["status"] }): AwardView {
   return {
     id: "a1",
+    program_id: "p1",
     last_confirmed_ledger: 1,
     sponsor_hold: false,
     verifier_hold: false,
     evidence_revision: 0,
     evidence_digest: "",
+    verifier_sync_required: false,
     sponsor_member: member("SPONSOR", "s"),
     verifier_member: member("VERIFIER", "v"),
     recipient_member: member("RECIPIENT", "r"),

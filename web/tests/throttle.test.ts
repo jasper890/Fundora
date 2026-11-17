@@ -17,7 +17,7 @@ describe("login throttle", () => {
 
   it("throttles after five failures in the window", () => {
     const now = new Date("2026-11-17T00:00:00Z");
-    let attempt = evaluateThrottle(null, "digest", now);
+    const attempt = evaluateThrottle(null, "digest", now);
     expect(attempt.ok).toBe(true);
     if (!attempt.ok) return;
     let row = attempt.attempt;

@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { TestnetBanner } from "@/components/TestnetBanner";
 import { PageHeading } from "@/components/PageHeading";
+import { SkipLink } from "@/components/SkipLink";
+import { TestnetBanner } from "@/components/TestnetBanner";
 
 const DOORS = [
   {
@@ -32,41 +33,38 @@ const DOORS = [
 export default function EntryPage() {
   return (
     <>
+      <SkipLink />
       <TestnetBanner />
-      <main className="main" id="main" style={{ maxWidth: 1100, margin: "0 auto" }}>
+      <main className="entry-page" id="main">
+        <div className="entry-masthead">
+          <Link className="brand" href="/" aria-label="ProofPay home">
+            <span className="brand-mark" aria-hidden="true">P</span>
+            <span>
+              ProofPay<span className="brand-period">.</span>
+            </span>
+          </Link>
+          <span className="entry-environment">
+            <span className="banner-signal" aria-hidden="true" />
+            Provisioned access only
+          </span>
+        </div>
         <PageHeading
           title="Choose your workspace"
           lead="Each door explains a job. Signing in does not grant that role — only a provisioned membership does. There is no public signup."
         />
-        <div
-          className="entry-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: "1.25rem",
-          }}
-        >
+        <div className="entry-grid">
           {DOORS.map((door) => (
-            <section
-              key={door.slug}
-              className="auth-card"
-              style={{ margin: 0, maxWidth: "none" }}
-            >
-              <p className="lead" style={{ color: "var(--coral)", marginBottom: "0.5rem" }}>
+            <section key={door.slug} className="workspace-door">
+              <span className="door-number" aria-hidden="true">
                 {door.number}
-              </p>
-              <h2 style={{ fontSize: "1.35rem", margin: "0 0 0.75rem" }}>
-                {door.slug[0]!.toUpperCase() + door.slug.slice(1)}
-              </h2>
-              <p className="lead" style={{ marginBottom: "0.5rem" }}>
-                {door.title}
-              </p>
-              <p className="lead">{door.body}</p>
-              <p style={{ marginTop: "1.25rem" }}>
-                <Link className="button" href={`/login/${door.slug}`}>
-                  Continue as {door.slug}
-                </Link>
-              </p>
+              </span>
+              <h2>{door.slug[0]!.toUpperCase() + door.slug.slice(1)}</h2>
+              <p className="door-title">{door.title}</p>
+              <p>{door.body}</p>
+              <Link className="button" href={"/login/" + door.slug}>
+                Continue as {door.slug}
+                <span aria-hidden="true">→</span>
+              </Link>
             </section>
           ))}
         </div>

@@ -84,12 +84,9 @@ export async function GET(
 
   if (!isAwardVisible(award, appUser)) return jsonError("NOT_FOUND", 404);
 
-  // Storage objects are keyed by reservation path; EvidenceFile.storage_name is the
-  // opaque local name. Prefer mapping via digest lookup of reservation path later.
-  // For now signed download uses storage_name as object key under award folder if present.
   const objectPath = String(row.storage_name);
   try {
-    const url = await createEvidenceDownloadUrl(objectPath, 60);
+    const url = await createEvidenceDownloadUrl(objectPath, 60, String(row.filename));
     return NextResponse.redirect(url, {
       headers: {
         "Cache-Control": "private, no-store",

@@ -30,7 +30,9 @@ export function jsonOk<T>(body: T, status = 200) {
 
 export function requireSameOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
-  if (!origin) return true; // same-origin navigations / non-CORS
+  if (!origin) {
+    return ["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase());
+  }
   const url = new URL(request.url);
   if (origin === url.origin) return true;
 
@@ -55,9 +57,7 @@ function defaultPort(protocol: string): string {
 }
 
 export function clientIp(request: Request): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "0.0.0.0"
-  );
+  if (process.env.VERCEL !== "1") return "local";
+  return request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ||
+    "vercel-unknown";
 }

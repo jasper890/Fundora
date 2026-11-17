@@ -1,5 +1,7 @@
 # Codex handoff — ProofPay Next.js rebuild (17 November 2026)
 
+> **Latest checkpoint:** The user requested a temporary pause during the orchestration pass. Read [ORCHESTRATION_PROGRESS.md](ORCHESTRATION_PROGRESS.md) first, then `BACKEND_RESUME.md`, `UI_RESUME.md`, and `CHAIN_RESUME.md` as present. The current checkpoint is committed on `feature/testability-hardening`; the original hardening commit is `0d005f8`. Do not resume the older live-smoke instructions until the current chain safety blockers and explicit network authorization gates are resolved. Local data and wallets must remain on this machine.
+
 Copy this into Codex (or open it in the **Proofpay-next** worktree). It records what was decided, what landed, what is in-flight, and what remains. Authority docs still win on product/contract conflicts.
 
 ---
@@ -11,7 +13,7 @@ Copy this into Codex (or open it in the **Proofpay-next** worktree). It records 
 | **Active app worktree** | `C:\Users\R O G - S T R I X\Desktop\Proofpay-next` |
 | **Docs-only snapshot** | `C:\Users\R O G - S T R I X\Desktop\Proofpay` (not the running Next app) |
 | **App root** | `Proofpay-next/web/` |
-| **Current branch** | `feature/testability-hardening` (uncommitted hardening + e2e as of this handoff) |
+| **Current branch** | `feature/testability-hardening` (checkpointed hardening + e2e; see `ORCHESTRATION_PROGRESS.md`) |
 | **Prior feature tip (committed)** | `feature/freighter-live-smoke` / commits through `724ba5c` (fee ceiling + expire-before-prepare) |
 | **Plan owner doc** | `docs/implementation/NEXTJS_SUPABASE_REBUILD_PLAN.md` |
 | **Hardening plan** | `docs/implementation/TESTABILITY_HARDENING_PLAN.md` |
@@ -90,7 +92,7 @@ Committed baseline for Phases 5–8 + live prepare fixes: `361f1e1`, `e3450f1`, 
 
 ## 5. What is in flight / dirty on disk
 
-Branch `feature/testability-hardening` had **uncommitted** work including:
+Branch `feature/testability-hardening` contains checkpointed work including:
 
 - Hardening UI/API (`WalletPanel`, `ChainPreview`, `SmokeContext`, `primaryAction`, `opSession`, open-ops route, apply/reconcile/live/rpc, globals, AppShell, login doors, evidence CSP/`skip_storage` fallback, `http.requireSameOrigin` localhost↔127.0.0.1)
 - Docs: `TESTABILITY_HARDENING_PLAN.md`, `FREIGHTER_SMOKE_RESUME.md`, this handoff

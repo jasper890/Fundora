@@ -4,10 +4,12 @@ import { Keypair } from "@stellar/stellar-sdk";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import postgres from "postgres";
+import { requireIsolatedTestEnvironment } from "../lib/test-isolation";
 
 export const DEMO_PASSWORD = "ProofPay-Demo-Password-12";
 
 function loadEnv() {
+  if (process.env.PROOFPAY_TEST_ISOLATED === "1") return;
   const path = resolve(process.cwd(), ".env.local");
   if (!existsSync(path)) return;
   for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
@@ -21,17 +23,18 @@ function loadEnv() {
 }
 
 loadEnv();
+requireIsolatedTestEnvironment(process.env);
 
 export async function loginAs(
   page: Page,
-  door: "sponsor" | "verifier" | "recipient",
+  door: "sponsor" | "verifier" | "recipient" | "administrator",
   username: string,
 ) {
   await page.goto(`/login/${door}`);
   await page.getByLabel("Username").fill(username);
   await page.getByLabel("Password").fill(DEMO_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/programs/, { timeout: 30_000 });
+  await expect(page).toHaveURL(door === "administrator" ? /\/admin/ : /\/programs/, { timeout: 30_000 });
 }
 
 export async function signOut(page: Page) {
@@ -44,7 +47,16 @@ export async function fakeRpcPrepareAndConfirm(
   page: Page,
   prepareButton: string,
 ) {
+  const preparedResponse = page.waitForResponse(response => response.request().method() === "POST" && response.url().includes("/prepare/"));
   await page.getByRole("button", { name: prepareButton }).click();
+  const preparationResponse = await preparedResponse;
+  const prepared = await preparationResponse.json();
+  const preparationReplay = await page.request.post(preparationResponse.url(), {
+    headers: { Origin: new URL(page.url()).origin, "Idempotency-Key": (await preparationResponse.request().headerValue("Idempotency-Key"))! },
+    data: preparationResponse.request().postDataJSON(),
+  });
+  expect(preparationReplay.status()).toBe(200);
+  expect((await preparationReplay.json()).id).toBe(prepared.id);
   await expect(page.getByText(/FakeRpc preview ready/i)).toBeVisible({
     timeout: 30_000,
   });
@@ -52,6 +64,11 @@ export async function fakeRpcPrepareAndConfirm(
   await expect(
     page.getByText(/Confirmed locally|Confirmed \(/i),
   ).toBeVisible({ timeout: 30_000 });
+  const replay = await page.request.post(`/api/v1/operations/${prepared.id}/submit`, {
+    headers: { Origin: new URL(page.url()).origin }, data: { signed_xdr: `SIGNED-${prepared.unsigned_xdr}` },
+  });
+  expect(replay.status()).toBe(200);
+  expect((await replay.json()).status).toBe("CONFIRMED_SUCCESS");
 }
 
 /** Provision a fresh recipient so create-award is not blocked by seed awards. */
@@ -86,8 +103,8 @@ export async function provisionE2ERecipient() {
   const sql = postgres(dbUrl, { prepare: false });
   try {
     await sql`
-      insert into app_user (id, username, is_staff, is_active)
-      values (${userId}, ${username}, false, true)
+      insert into app_user (id, username, is_staff, is_active, must_change_password)
+      values (${userId}, ${username}, false, true, false)
       on conflict (id) do update set username = excluded.username, is_active = true
     `;
     const program = await sql`

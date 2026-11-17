@@ -1,7 +1,11 @@
 export function TestnetBanner() {
   return (
     <div className="testnet-banner" role="status">
-      Demo · Testnet XLM — no real monetary value
+      <span className="banner-signal" aria-hidden="true" />
+      <strong>TESTNET XLM</strong>
+      <span>Demo environment</span>
+      <span className="banner-divider" aria-hidden="true">·</span>
+      <span>No real monetary value</span>
     </div>
   );
 }

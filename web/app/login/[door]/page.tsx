@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { LoginForm } from "../LoginForm";
 import { PageHeading } from "@/components/PageHeading";
+import { SkipLink } from "@/components/SkipLink";
 import { TestnetBanner } from "@/components/TestnetBanner";
+import { LoginForm } from "../LoginForm";
 
 const DOORS: Record<
   string,
@@ -46,23 +47,38 @@ export default async function LoginDoorPage({
 
   return (
     <>
+      <SkipLink />
       <TestnetBanner />
-      <main className="auth-card" id="main">
-        <p className="lead" style={{ marginBottom: "0.75rem" }}>
-          <Link href="/">← All workspaces</Link>
-        </p>
-        <PageHeading
-          title={`${meta.label} sign in`}
-          lead={meta.explain}
-        />
-        <LoginForm door={door} />
-        <p className="lead" style={{ marginTop: "1rem" }}>
-          {meta.demoUsers}. Password is the seeded local demo password (not
-          printed here).
-        </p>
-        <p className="demo-label">
-          Demo · Testnet XLM — no real monetary value · no public signup
-        </p>
+      <main className="login-page" id="main">
+        <Link className="login-back" href="/">
+          ← All workspaces
+        </Link>
+        <div className="login-card">
+          <section className="login-intro">
+            <div>
+              <Link className="brand" href="/" aria-label="ProofPay home">
+                <span className="brand-mark" aria-hidden="true">P</span>
+                <span>
+                  ProofPay<span className="brand-period">.</span>
+                </span>
+              </Link>
+              <p className="eyebrow">{meta.label} workspace</p>
+              <PageHeading title={meta.label + " sign in"} lead={meta.explain} />
+            </div>
+            <p className="login-note">
+              This demo uses provisioned accounts. There is no public signup.
+            </p>
+          </section>
+          <section className="login-form-panel" aria-label="Sign in">
+            <p className="eyebrow">PROVISIONED ACCOUNT</p>
+            <h2>Account details</h2>
+            <LoginForm door={door} />
+            <p className="demo-label">
+              {meta.demoUsers}. Password is the seeded local demo password (not
+              printed here).
+            </p>
+          </section>
+        </div>
       </main>
     </>
   );

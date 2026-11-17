@@ -39,12 +39,15 @@ export type HomeCopy = {
 /** Presentation view of an award — pure data, no ORM. */
 export type AwardView = {
   id: string;
+  program_id: string;
   status: AwardStatus;
   last_confirmed_ledger: number | null;
   sponsor_hold: boolean;
   verifier_hold: boolean;
   evidence_revision: number;
   evidence_digest: string;
+  latest_evidence_revision?: number | null;
+  verifier_sync_required: boolean;
   sponsor_member: MemberView;
   verifier_member: MemberView;
   recipient_member: MemberView;
@@ -65,6 +68,7 @@ export type AppUser = {
   username: string;
   is_staff: boolean;
   is_active: boolean;
+  must_change_password?: boolean;
 };
 
 export const AWARD_AMOUNT = 200_000_000;

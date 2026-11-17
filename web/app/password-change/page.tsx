@@ -1,18 +1,19 @@
 import { AppShell } from "@/components/AppShell";
-import { PageHeading } from "@/components/PageHeading";
 import { Notice } from "@/components/Notice";
+import { PageHeading } from "@/components/PageHeading";
+import { PasswordChangeForm } from "@/components/PasswordChangeForm";
+import { requireSessionUser } from "@/lib/session";
 
-export default function PasswordChangePage() {
+export default async function PasswordChangePage() {
+  const user = await requireSessionUser({ allowMustChangePassword: true });
   return (
-    <AppShell>
+    <AppShell username={user.username} roleLabel={user.is_staff ? "ADMIN" : undefined} isStaff={user.is_staff}>
       <PageHeading
-        title="Change password"
-        lead="Current password is required. Labels match the provisioned account form."
+        title="Set your password"
+        lead="For account security, change the temporary password before continuing."
       />
-      <Notice>
-        Password change API lands with the authenticated session routes once
-        the local Supabase stack is seeded.
-      </Notice>
+      <Notice>Use your current temporary password and choose a new password of at least 8 characters.</Notice>
+      <section className="award-section"><PasswordChangeForm /></section>
     </AppShell>
   );
 }

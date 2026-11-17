@@ -68,6 +68,22 @@ test("FakeRpc award lifecycle through PAY", async ({ page }) => {
     timeout: 60_000,
   });
 
+  const evidenceLink = page.locator('a[href*="/api/v1/evidence/"]').first();
+  await expect(evidenceLink).toBeVisible();
+  const evidenceHref = (await evidenceLink.getAttribute("href"))!;
+  const download = await page.request.get(evidenceHref);
+  expect(download.status()).toBe(200);
+  expect((await download.body()).equals(tinyJpeg())).toBe(true);
+  await signOut(page);
+  await loginAs(page, "recipient", "demo-recipient-09");
+  expect((await page.request.get(evidenceHref)).status()).toBe(404);
+  await signOut(page);
+  await loginAs(page, "administrator", "demo-admin");
+  expect((await page.request.get(evidenceHref)).status()).toBe(404);
+  await signOut(page);
+  await loginAs(page, "recipient", demo.recipientUsername);
+  await page.goto(`${awardUrl}/evidence`);
+
   await page.getByRole("link", { name: /Back to award/i }).click();
   await expect(
     page.getByRole("button", { name: "Prepare submission" }),

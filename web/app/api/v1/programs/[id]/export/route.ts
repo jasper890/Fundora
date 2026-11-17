@@ -45,7 +45,7 @@ export async function GET(
   const member = membership[0];
   if (
     !member?.active ||
-    (member.role !== "SPONSOR" && member.role !== "VERIFIER" && !appUser.is_staff)
+    (member.role !== "SPONSOR" && member.role !== "VERIFIER")
   ) {
     return jsonError("FORBIDDEN", 403);
   }
@@ -59,25 +59,18 @@ export async function GET(
     select a.id, a.status, a.version, a.contract_id, a.evidence_revision,
            a.evidence_digest, a.last_confirmed_ledger, a.base_units,
            a.verifier_sync_required,
-           sm.user_id as sponsor_user_id,
-           vm.user_id as verifier_user_id
+           sm.user_id as sponsor_user_id, sm.role as sponsor_role, sm.active as sponsor_active,
+           vm.user_id as verifier_user_id, vm.role as verifier_role, vm.active as verifier_active
     from award a
     join program_member sm on sm.id = a.sponsor_member_id
     join program_member vm on vm.id = a.verifier_member_id
     where a.program_id = ${programId}
   `) as unknown as Record<string, unknown>[];
 
-  const visible = awards.filter((a) => {
-    if (appUser.is_staff) return true;
-    if (String(a.sponsor_user_id) === appUser.id) return true;
-    if (
-      String(a.verifier_user_id) === appUser.id &&
-      !Boolean(a.verifier_sync_required)
-    ) {
-      return true;
-    }
-    return false;
-  });
+  const visible = awards.filter((a) =>
+    (String(a.sponsor_user_id) === appUser.id && a.sponsor_role === "SPONSOR" && Boolean(a.sponsor_active)) ||
+    (String(a.verifier_user_id) === appUser.id && a.verifier_role === "VERIFIER" && Boolean(a.verifier_active) && !Boolean(a.verifier_sync_required))
+  );
 
   const rows: Record<string, string>[] = [];
   for (const award of visible) {

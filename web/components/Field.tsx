@@ -6,14 +6,35 @@ type Props = InputHTMLAttributes<HTMLInputElement> & {
   error?: string;
 };
 
-export function Field({ label, hint, error, id, ...props }: Props) {
+export function Field({
+  label,
+  hint,
+  error,
+  id,
+  "aria-describedby": describedBy,
+  ...props
+}: Props) {
   const fieldId = id ?? props.name;
+  const hintId = hint && fieldId ? fieldId + "-hint" : undefined;
+  const errorId = error && fieldId ? fieldId + "-error" : undefined;
+  const descriptionIds =
+    [describedBy, hintId, errorId].filter(Boolean).join(" ") || undefined;
+
   return (
     <div className="field">
       <label htmlFor={fieldId}>{label}</label>
-      <input id={fieldId} aria-invalid={error ? true : undefined} {...props} />
-      {hint ? <small>{hint}</small> : null}
-      {error ? <small className="field-error">{error}</small> : null}
+      <input
+        id={fieldId}
+        aria-describedby={descriptionIds}
+        aria-invalid={error ? true : undefined}
+        {...props}
+      />
+      {hint ? <small id={hintId}>{hint}</small> : null}
+      {error ? (
+        <small id={errorId} className="field-error">
+          {error}
+        </small>
+      ) : null}
     </div>
   );
 }

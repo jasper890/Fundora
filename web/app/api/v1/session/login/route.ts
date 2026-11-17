@@ -40,56 +40,56 @@ export async function POST(request: Request) {
     secret,
   );
   const db = sql();
-
-  const rows = (await db`
-    select * from login_attempt where account_ip_digest = ${digest}
-  `) as unknown as {
-    account_ip_digest: string;
-    window_started_at: Date;
-    failed_attempts: number;
-    last_attempt_at: Date;
-    last_succeeded: boolean;
-  }[];
-
-  const decision = evaluateThrottle(rows[0] ?? null, digest, now);
-  if (!decision.ok) {
+  const reservation = await db.begin(async (tx) => {
+    await tx`
+      insert into login_attempt (
+        account_ip_digest, window_started_at, failed_attempts, last_attempt_at, last_succeeded
+      ) values (${digest}, ${now}, 0, ${now}, false)
+      on conflict (account_ip_digest) do nothing
+    `;
+    const rows = (await tx`
+      select * from login_attempt where account_ip_digest = ${digest} for update
+    `) as unknown as {
+      account_ip_digest: string;
+      window_started_at: Date;
+      failed_attempts: number;
+      last_attempt_at: Date;
+      last_succeeded: boolean;
+    }[];
+    const decision = evaluateThrottle(rows[0] ?? null, digest, now);
+    if (!decision.ok) return { ok: false as const };
+    const reserved = recordFailure(decision.attempt, now);
+    await tx`
+      update login_attempt set
+        window_started_at = ${reserved.window_started_at},
+        failed_attempts = ${reserved.failed_attempts},
+        last_attempt_at = ${reserved.last_attempt_at},
+        last_succeeded = false
+      where account_ip_digest = ${digest}
+    `;
+    return { ok: true as const, attempt: reserved };
+  });
+  if (!reservation.ok) {
     return jsonError("RATE_LIMITED", 429, THROTTLED_MESSAGE);
   }
 
   const profile = (await db`
-    select id, username, is_active from app_user
+    select id, username, is_active, must_change_password from app_user
     where lower(username) = ${parsed.data.username.trim().toLowerCase()}
     limit 1
-  `) as unknown as { id: string; username: string; is_active: boolean }[];
+  `) as unknown as {
+    id: string;
+    username: string;
+    is_active: boolean;
+    must_change_password: boolean;
+  }[];
 
   const user = profile[0];
   const email = user
     ? `${user.username}@users.proofpay.local`
     : `${parsed.data.username.trim().toLowerCase()}@users.proofpay.local`;
 
-  async function persistAttempt(
-    attempt: typeof decision.attempt,
-  ): Promise<void> {
-    await db`
-      insert into login_attempt (
-        account_ip_digest, window_started_at, failed_attempts, last_attempt_at, last_succeeded
-      ) values (
-        ${attempt.account_ip_digest},
-        ${attempt.window_started_at},
-        ${attempt.failed_attempts},
-        ${attempt.last_attempt_at},
-        ${attempt.last_succeeded}
-      )
-      on conflict (account_ip_digest) do update set
-        window_started_at = excluded.window_started_at,
-        failed_attempts = excluded.failed_attempts,
-        last_attempt_at = excluded.last_attempt_at,
-        last_succeeded = excluded.last_succeeded
-    `;
-  }
-
   if (!user || !user.is_active) {
-    await persistAttempt(recordFailure(decision.attempt, now));
     return jsonError("INVALID_LOGIN", 400, INVALID_LOGIN_MESSAGE);
   }
 
@@ -100,10 +100,21 @@ export async function POST(request: Request) {
   });
 
   if (error || !data.user) {
-    await persistAttempt(recordFailure(decision.attempt, now));
     return jsonError("INVALID_LOGIN", 400, INVALID_LOGIN_MESSAGE);
   }
 
-  await persistAttempt(recordSuccess(decision.attempt, now));
-  return jsonOk({ authenticated: true, username: user.username });
+  const success = recordSuccess(reservation.attempt, new Date());
+  await db`
+    update login_attempt set
+      window_started_at = ${success.window_started_at},
+      failed_attempts = 0,
+      last_attempt_at = ${success.last_attempt_at},
+      last_succeeded = true
+    where account_ip_digest = ${digest}
+  `;
+  return jsonOk({
+    authenticated: true,
+    username: user.username,
+    password_change_required: user.must_change_password,
+  });
 }

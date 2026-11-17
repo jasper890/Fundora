@@ -21,24 +21,30 @@ function toMember(row: MemberRow): MemberView {
 
 export async function loadAppUserByAuthId(
   authId: string,
+  options: { allowMustChangePassword?: boolean } = {},
 ): Promise<AppUser | null> {
   const db = sql();
   const rows = (await db`
-    select id, username, is_staff, is_active
+    select id, username, is_staff, is_active, must_change_password
     from app_user
     where id = ${authId}
     limit 1
   `) as unknown as AppUser[];
-  return rows[0] ?? null;
+  const user = rows[0];
+  if (!user?.is_active) return null;
+  if (user.must_change_password && !options.allowMustChangePassword) return null;
+  return user ?? null;
 }
 
 export async function listVisibleAwardsForUser(
   user: AppUser,
+  programId?: string,
 ): Promise<AwardView[]> {
   const db = sql();
   const rows = (await db`
     select
       a.id,
+      a.program_id,
       a.status,
       a.last_confirmed_ledger,
       a.sponsor_hold,
@@ -75,18 +81,22 @@ export async function listVisibleAwardsForUser(
       order by revision desc
       limit 1
     ) ev on true
-    where
+    where (
       (sm.user_id = ${user.id} and sm.role = 'SPONSOR' and sm.active)
       or (vm.user_id = ${user.id} and vm.role = 'VERIFIER' and vm.active and a.verifier_sync_required = false)
       or (rm.user_id = ${user.id} and rm.role = 'RECIPIENT' and rm.active)
+    )
+      and (${programId ?? null}::uuid is null or a.program_id = ${programId ?? null}::uuid)
   `) as unknown as {
     id: string;
+    program_id: string;
     status: AwardView["status"];
     last_confirmed_ledger: number | null;
     sponsor_hold: boolean;
     verifier_hold: boolean;
     evidence_revision: number;
     evidence_digest: string;
+    verifier_sync_required: boolean;
     sponsor_user_id: string;
     sponsor_role: Role;
     sponsor_active: boolean;
@@ -106,12 +116,15 @@ export async function listVisibleAwardsForUser(
 
   return rows.map((row) => ({
     id: row.id,
+    program_id: row.program_id,
     status: row.status,
     last_confirmed_ledger: row.last_confirmed_ledger,
     sponsor_hold: row.sponsor_hold,
     verifier_hold: row.verifier_hold,
     evidence_revision: row.evidence_revision,
     evidence_digest: row.evidence_digest,
+    latest_evidence_revision: row.latest_revision,
+    verifier_sync_required: row.verifier_sync_required,
     sponsor_member: toMember({
       id: "",
       user_id: row.sponsor_user_id,
@@ -139,4 +152,93 @@ export async function listVisibleAwardsForUser(
         : { revision: row.latest_revision, digest: row.latest_digest },
     unresolved_operation: row.unresolved,
   }));
+}
+
+export type EvidenceHistoryFile = {
+  id: string;
+  filename: string;
+  content_type: string;
+  size: number;
+};
+
+export type EvidenceHistoryItem = {
+  id: string;
+  revision: number;
+  digest: string;
+  explanation: string;
+  source_ref: string;
+  created_at: string;
+  files: EvidenceHistoryFile[];
+};
+
+export async function loadEvidenceHistoryForUser(
+  awardId: string,
+  user: AppUser,
+): Promise<EvidenceHistoryItem[]> {
+  if (!user.is_active) return [];
+  const db = sql();
+  const rows = (await db`
+    select
+      ev.id,
+      ev.revision,
+      ev.digest,
+      ev.explanation,
+      ev.source_ref,
+      ev.created_at,
+      ef.id as file_id,
+      ef.filename,
+      ef.content_type,
+      ef.size
+    from evidence_version ev
+    join award a on a.id = ev.award_id
+    join program_member sm on sm.id = a.sponsor_member_id
+    join program_member vm on vm.id = a.verifier_member_id
+    join program_member rm on rm.id = a.recipient_member_id
+    left join evidence_file ef on ef.version_id = ev.id
+    where ev.award_id = ${awardId}
+      and ev.purged_at is null
+      and (
+        (sm.user_id = ${user.id} and sm.role = 'SPONSOR' and sm.active)
+        or (vm.user_id = ${user.id} and vm.role = 'VERIFIER' and vm.active and a.verifier_sync_required = false)
+        or (rm.user_id = ${user.id} and rm.role = 'RECIPIENT' and rm.active)
+      )
+    order by ev.revision desc, ef.id
+  `) as unknown as {
+    id: string;
+    revision: number;
+    digest: string;
+    explanation: string;
+    source_ref: string;
+    created_at: Date | string;
+    file_id: string | null;
+    filename: string | null;
+    content_type: string | null;
+    size: number | null;
+  }[];
+
+  const versions = new Map<string, EvidenceHistoryItem>();
+  for (const row of rows) {
+    let version = versions.get(row.id);
+    if (!version) {
+      version = {
+        id: row.id,
+        revision: Number(row.revision),
+        digest: row.digest,
+        explanation: row.explanation,
+        source_ref: row.source_ref,
+        created_at: new Date(row.created_at).toISOString(),
+        files: [],
+      };
+      versions.set(row.id, version);
+    }
+    if (row.file_id && row.filename && row.content_type && row.size != null) {
+      version.files.push({
+        id: row.file_id,
+        filename: row.filename,
+        content_type: row.content_type,
+        size: Number(row.size),
+      });
+    }
+  }
+  return [...versions.values()];
 }

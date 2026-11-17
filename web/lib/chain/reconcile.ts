@@ -1,87 +1,53 @@
-import "server-only";
+﻿import "server-only";
 import { sql } from "@/lib/db";
-import { TERMINAL } from "./constants";
-import { useFakeRpc } from "./gateway";
+import { isFakeRpc } from "./gateway";
 import { LiveRpc } from "./live";
-import { applyConfirmedAction } from "./apply";
+import type { AwardSnapshot } from "./rpc";
 
-/** Lightweight reconcile for SUBMITTED/UNKNOWN ops. FakeRpc path is a no-op. */
+/** Poll outside locks; claim a terminal result exactly once inside a short transaction. */
 export async function reconcileOperation(operationId: string) {
   const db = sql();
-  const rows = (await db`
-    select * from chain_operation where id = ${operationId} limit 1
-  `) as unknown as Record<string, unknown>[];
-  const op = rows[0];
-  if (!op) return null;
-  if (TERMINAL.includes(op.status as never) || !op.signed_hash) {
-    return op;
-  }
-  if (useFakeRpc()) {
-    return op;
-  }
-
+  const [op] = await db`select * from chain_operation where id = ${operationId} limit 1`;
+  if (!op || !["SIGNED", "SUBMITTED", "UNKNOWN"].includes(op.status) || !op.signed_hash || isFakeRpc()) return op ?? null;
   const live = new LiveRpc();
   let outcome: Awaited<ReturnType<LiveRpc["getTransaction"]>>;
   try {
     outcome = await live.getTransaction(String(op.signed_hash));
   } catch {
-    await db`
-      update chain_operation
-      set status = 'UNKNOWN',
-          error_code = 'RPC_UNAVAILABLE',
-          last_checked_at = now()
-      where id = ${operationId}
-    `;
-    return { ...op, status: "UNKNOWN" };
+    outcome = { status: "PENDING" };
   }
-
   if (outcome.status === "PENDING" || outcome.status === "NOT_FOUND") {
-    await db`
-      update chain_operation
-      set status = 'UNKNOWN',
-          error_code = 'OUTCOME_UNKNOWN',
-          last_checked_at = now()
-      where id = ${operationId}
-        and status not in ('CONFIRMED_SUCCESS','CONFIRMED_FAILED','ABANDONED','STALE')
-    `;
+    await db`update chain_operation set status = 'UNKNOWN', error_code = 'OUTCOME_UNKNOWN', last_checked_at = now()
+      where id = ${operationId} and status in ('SIGNED', 'SUBMITTED', 'UNKNOWN')`;
     return { ...op, status: "UNKNOWN" };
   }
-
-  if (outcome.status === "FAILED") {
-    await db`
-      update chain_operation
-      set status = 'CONFIRMED_FAILED',
-          last_checked_at = now()
-      where id = ${operationId}
-    `;
-    await db`
-      insert into chain_observation (operation_id, status, code)
-      values (${operationId}, 'CONFIRMED_FAILED', ${""})
-    `;
-    return { ...op, status: "CONFIRMED_FAILED" };
+  // A confirmed transaction is insufficient without its independently read post-state.
+  let snapshot: AwardSnapshot | undefined;
+  let contractId: string | null = null;
+  if (outcome.status === "SUCCESS") {
+    const [award] = await db`select contract_id from award where id = ${op.award_id}`;
+    contractId = op.action === "DEPLOY" ? outcome.contractId ?? null : award?.contract_id ?? null;
+    if (!contractId || !outcome.ledger) return { ...op, status: "UNKNOWN" };
+    try { snapshot = await live.readAward(contractId); } catch { return { ...op, status: "UNKNOWN" }; }
   }
-
-  const ledger = outcome.ledger ?? Math.floor(Date.now() / 1000);
-  await db.begin(async (tx) => {
-    await tx`
-      update chain_operation
-      set status = 'CONFIRMED_SUCCESS',
-          confirmed_ledger = ${ledger},
-          last_checked_at = now(),
-          error_code = ''
-      where id = ${operationId}
-    `;
-    await tx`
-      insert into chain_observation (operation_id, status, code, ledger)
-      values (${operationId}, 'CONFIRMED_SUCCESS', ${""}, ${ledger})
-    `;
-    await applyConfirmedAction(tx, {
-      awardId: String(op.award_id),
-      action: String(op.action),
-      ledger,
-      intent: op.intent as Record<string, unknown>,
-      contractId: outcome.contractId ?? null,
-    });
+  return db.begin(async (tx) => {
+    const [current] = await tx`select * from chain_operation where id = ${operationId} for update`;
+    if (!current || !["SIGNED", "SUBMITTED", "UNKNOWN"].includes(current.status)) return current;
+    const status = outcome.status === "SUCCESS" ? "CONFIRMED_SUCCESS" : "CONFIRMED_FAILED";
+    if (snapshot) {
+      const [award] = await tx`select * from award where id = ${op.award_id} for update`;
+      const verifier = await tx`select id from program_member where program_id = ${award.program_id}
+        and public_wallet = ${snapshot.verifier} and role = 'VERIFIER' and active = true`;
+      if (!verifier[0]) return { ...current, status: "UNKNOWN" };
+      await tx`update award set contract_id = ${contractId}, network_id = 'TESTNET', status = ${snapshot.status},
+        version = ${snapshot.version}, sponsor_hold = ${snapshot.sponsor_hold}, verifier_hold = ${snapshot.verifier_hold},
+        verifier_member_id = ${verifier[0].id}, verifier_sync_required = false,
+        last_confirmed_ledger = ${outcome.ledger ?? null},
+        settled_at = case when ${snapshot.status} in ('PAID', 'REFUNDED', 'CANCELLED') then coalesce(settled_at, now()) else settled_at end
+        where id = ${op.award_id}`;
+    }
+    await tx`update chain_operation set status = ${status}, confirmed_ledger = ${outcome.ledger ?? null}, last_checked_at = now(), error_code = '' where id = ${operationId}`;
+    await tx`insert into chain_observation (operation_id, status, code, ledger) values (${operationId}, ${status}, '', ${outcome.ledger ?? null})`;
+    return { ...current, status, confirmed_ledger: outcome.ledger };
   });
-  return { ...op, status: "CONFIRMED_SUCCESS", confirmed_ledger: ledger };
 }

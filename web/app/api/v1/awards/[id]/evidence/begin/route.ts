@@ -6,7 +6,7 @@ import { loadAppUserByAuthId } from "@/lib/awards/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { MemberView } from "@/lib/types";
 import { validateEvidenceFilename } from "@/lib/evidence/validate";
-import { createEvidenceUploadTokens } from "@/lib/evidence/storage";
+import { createEvidenceUploadTokens, deleteEvidenceObjects } from "@/lib/evidence/storage";
 
 const Body = z
   .object({
@@ -48,11 +48,12 @@ export async function POST(
   const db = sql();
   try {
     const rows = (await db`
-      select a.evidence_revision, a.status, a.verifier_sync_required,
+      select a.evidence_revision, a.status, a.verifier_sync_required, p.claim_deadline,
         rm.user_id as recipient_user_id, rm.active as recipient_active, rm.public_wallet as recipient_wallet,
         sm.user_id as sponsor_user_id, sm.active as sponsor_active, sm.public_wallet as sponsor_wallet,
         vm.user_id as verifier_user_id, vm.active as verifier_active, vm.public_wallet as verifier_wallet
       from award a
+      join program p on p.id = a.program_id
       join program_member sm on sm.id = a.sponsor_member_id
       join program_member vm on vm.id = a.verifier_member_id
       join program_member rm on rm.id = a.recipient_member_id
@@ -95,7 +96,7 @@ export async function POST(
       ["RECIPIENT"],
     );
 
-    if (row.status !== "FUNDED" && row.status !== "SUBMITTED") {
+    if ((row.status !== "FUNDED" && row.status !== "SUBMITTED") || new Date(String(row.claim_deadline)).getTime() < Date.now()) {
       return jsonError(
         "INVALID_STATE",
         409,
@@ -121,13 +122,12 @@ export async function POST(
       returning id
     `) as unknown as { id: string }[];
 
-    let uploads: { path: string; token: string; signedUrl: string }[] = [];
-    let uploadMode: "signed_upload" | "deferred_storage" = "signed_upload";
+    let uploads;
     try {
       uploads = await createEvidenceUploadTokens(paths);
-    } catch (error) {
-      console.warn("Signed upload unavailable; client may use skip_storage.", error);
-      uploadMode = "deferred_storage";
+    } catch {
+      await db`delete from evidence_upload_reservation where id = ${inserted[0].id} and finalized_at is null`;
+      return jsonError("STORAGE_UNAVAILABLE", 503, "Evidence storage is unavailable. Your revision has not been saved.");
     }
 
     return jsonOk({
@@ -135,11 +135,28 @@ export async function POST(
       object_paths: paths,
       content_types: parsed.data.content_types,
       uploads,
-      upload_mode: uploadMode,
+      upload_mode: "signed_upload",
     });
   } catch (error) {
     if (error instanceof PermissionDeniedError) return jsonError("FORBIDDEN", 403);
     console.error(error);
     return jsonError("SERVER_ERROR", 500);
   }
+}
+
+/** Cancel an upload without touching any finalized evidence. */
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+  if (!requireSameOrigin(request)) return jsonError("ORIGIN_MISMATCH", 403);
+  const body = z.object({ reservation_id: z.string().uuid() }).strict().safeParse(await request.json().catch(() => null));
+  if (!body.success) return jsonError("INVALID_BODY", 400);
+  const { id } = await context.params;
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const actor = user && await loadAppUserByAuthId(user.id);
+  if (!actor?.is_active) return jsonError("UNAUTHENTICATED", 401);
+  const db = sql();
+  const rows = await db`delete from evidence_upload_reservation where id = ${body.data.reservation_id}
+    and award_id = ${id} and author_id = ${actor.id} and finalized_at is null returning object_paths`;
+  if (rows[0]) await deleteEvidenceObjects(rows[0].object_paths as string[]);
+  return jsonOk({ ok: true });
 }

@@ -1,20 +1,21 @@
 :root {
-  --bg: #f0efe9;
-  --surface: #fcfbf7;
-  --ink: #173e32;
-  --muted: #606d63;
-  --line: #dedfd6;
-  --green: #204e3e;
-  --soft: #e9eee4;
+  color-scheme: light;
+  --bg: #f1efe7;
+  --surface: #fffdf8;
+  --paper: #fffefb;
+  --ink: #18372f;
+  --muted: #5e6d63;
+  --line: #dce1d8;
+  --green: #1d5142;
+  --green-deep: #173e34;
+  --green-soft: #e8eee6;
+  --ivory: #fff8e7;
   --coral: #ed7747;
-  --sidebar: 244px;
-  --radius: 12px;
+  --coral-soft: #fff0e7;
+  --sidebar: 256px;
+  --radius: 14px;
+  --radius-small: 9px;
   --space: 20px;
-  --ivory: #fff9e8;
-  --paper: #fffdf8;
+  --shadow-card: 0 8px 24px rgb(27 55 44 / 5%);
+  --shadow-float: 0 14px 36px rgb(27 55 44 / 12%);
 }
-
-/* Contrast notes (WCAG AA targets, measured against intended pairs):
-   coral #ed7747 on ink #182f26 for primary buttons — dark text on coral.
-   green #204e3e on ivory #fff9e8 for sidebar / featured stats.
-*/

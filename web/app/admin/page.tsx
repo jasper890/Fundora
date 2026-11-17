@@ -5,6 +5,7 @@ import { PageHeading } from "@/components/PageHeading";
 import { Notice } from "@/components/Notice";
 import { requireSessionUser } from "@/lib/session";
 import { sql } from "@/lib/db";
+import { AdminUserForm } from "@/components/AdminUserForm";
 
 export default async function AdminHomePage() {
   const user = await requireSessionUser();
@@ -35,6 +36,7 @@ export default async function AdminHomePage() {
         title="Administrator workspace"
         lead="Provision members and manage program access. No payment authority and no automatic evidence access."
       />
+      <AdminUserForm />
       <section style={{ marginBottom: "2rem" }}>
         <h2 style={{ fontSize: "1.05rem" }}>Programs</h2>
         <ul style={{ listStyle: "none", padding: 0 }}>

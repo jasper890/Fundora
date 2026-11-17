@@ -13,6 +13,7 @@ export async function applyConfirmedAction(
     intent: Record<string, unknown>;
     /** Real Testnet contract id from deploy returnValue; FakeRpc synthesizes one. */
     contractId?: string | null;
+    actorRole?: string;
   },
 ) {
   const action = args.action.toUpperCase();
@@ -75,7 +76,7 @@ export async function applyConfirmedAction(
           last_confirmed_ledger = ${args.ledger},
           version = version + 1
       where id = ${args.awardId}
-        and status = 'SUBMITTED'
+        and status in ('SUBMITTED', 'APPROVED')
     `;
     return;
   }
@@ -99,7 +100,7 @@ export async function applyConfirmedAction(
           last_confirmed_ledger = ${args.ledger},
           version = version + 1
       where id = ${args.awardId}
-        and status in ('CREATED', 'FUNDED')
+        and status = 'CREATED'
     `;
     return;
   }
@@ -131,6 +132,10 @@ export async function applyConfirmedAction(
       | { params?: { held?: boolean } }
       | undefined;
     const held = Boolean(payload?.params?.held);
+    if (args.actorRole === "VERIFIER" || args.intent.actor_role === "VERIFIER") {
+      await tx`update award set verifier_hold = ${held}, last_confirmed_ledger = ${args.ledger}, version = version + 1 where id = ${args.awardId}`;
+      return;
+    }
     await tx`
       update award
       set sponsor_hold = ${held},
@@ -140,11 +145,18 @@ export async function applyConfirmedAction(
     `;
     return;
   }
-  // EXTEND_TTL / REPLACE_VERIFIER: ledger bump only for local FakeRpc.
+  if (action === "REPLACE_VERIFIER") {
+    const payload = args.intent.payload as { params: { new_verifier_member_id: string } };
+    await tx`update award set verifier_member_id = ${payload.params.new_verifier_member_id},
+      verifier_hold = false, verifier_sync_required = false,
+      status = case when status in ('APPROVED', 'REJECTED') then 'SUBMITTED' else status end,
+      last_confirmed_ledger = ${args.ledger}, version = version + 1 where id = ${args.awardId}`;
+    return;
+  }
+  // TTL maintenance does not change the contract's business version.
   await tx`
     update award
-    set last_confirmed_ledger = ${args.ledger},
-        version = version + 1
+    set last_confirmed_ledger = ${args.ledger}
     where id = ${args.awardId}
   `;
 }

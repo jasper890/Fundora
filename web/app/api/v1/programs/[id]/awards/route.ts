@@ -47,10 +47,6 @@ export async function POST(
       }[];
       const program = programs[0];
       if (!program) throw Object.assign(new Error("NOT_FOUND"), { code: "NOT_FOUND" });
-      if (program.sponsor_user_id !== appUser.id && !appUser.is_staff) {
-        throw Object.assign(new Error("FORBIDDEN"), { code: "FORBIDDEN" });
-      }
-
       const members = (await tx`
         select id, user_id, role, public_wallet, active
         from program_member
@@ -67,6 +63,9 @@ export async function POST(
       const verifier = members.find((m) => m.role === "VERIFIER" && m.active);
       if (!sponsor || !verifier) {
         throw Object.assign(new Error("INVALID_STATE"), { code: "INVALID_STATE" });
+      }
+      if (sponsor.user_id !== appUser.id) {
+        throw Object.assign(new Error("FORBIDDEN"), { code: "FORBIDDEN" });
       }
 
       let recipient = members.find(
@@ -99,6 +98,13 @@ export async function POST(
         throw Object.assign(new Error("DUPLICATE_AWARD"), { code: "DUPLICATE_AWARD" });
       }
 
+      const countRows = (await tx`
+        select count(*)::int as count from award where program_id = ${programId}
+      `) as unknown as { count: number }[];
+      if (Number(countRows[0]?.count ?? 0) >= 10) {
+        throw Object.assign(new Error("PROGRAM_LIMIT"), { code: "PROGRAM_LIMIT" });
+      }
+
       const awards = (await tx`
         insert into award (
           program_id, sponsor_member_id, verifier_member_id, recipient_member_id,
@@ -117,6 +123,7 @@ export async function POST(
     const code = (error as { code?: string }).code;
     if (code === "NOT_FOUND") return jsonError("NOT_FOUND", 404);
     if (code === "FORBIDDEN") return jsonError("FORBIDDEN", 403);
+    if (code === "PROGRAM_LIMIT") return jsonError("PROGRAM_LIMIT", 409, "This program has reached its 10-award limit.");
     if (code === "DUPLICATE_AWARD") {
       return jsonError("DUPLICATE_AWARD", 409, "Recipient already has an award in this program.");
     }
