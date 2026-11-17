@@ -4,6 +4,8 @@ Task 1 inventory recorded 16 November 2026 from `uv.lock`, installed Python dist
 
 No third-party application source code was copied or adapted for this baseline. The separately installed agent skills retain their own upstream license files. Preserve the OpenSpec notice at [docs/OPENSPEC_LICENSE.txt](docs/OPENSPEC_LICENSE.txt). Later adapted Soroban snippets must record the pinned source, path, revision, changes, and required notice here.
 
+The daisyUI 5.7.x Codex skill is vendored under `.agents/skills/daisyui/` from [saadeghi/daisyui](https://github.com/saadeghi/daisyui/tree/10c87783e57b4f2f6ecdbab9a2f31dcda0de41dc/skills/daisyui) at commit `10c87783e57b4f2f6ecdbab9a2f31dcda0de41dc`. Its MIT license is preserved at `.agents/skills/daisyui/LICENSE`.
+
 ## Python runtime and transitive packages
 
 | Package | Version | License metadata |

@@ -19,6 +19,7 @@ Documentation for a proposed Stellar Testnet training-stipend prototype. A spons
 | [Verification matrix](docs/VERIFICATION.md) | Requirements mapped to future checks and evidence |
 | [Operations guide](docs/OPERATIONS.md) | Local setup boundary and proposed recovery procedures |
 | [Synthetic demo record](docs/DEMO_RECORD.md) | Local browser setup, synthetic walkthrough and open acceptance gates |
+| [UI design tooling](docs/UI_DESIGN_TOOLING.md) | DaisyUI skill, project Figma MCP, and Apple design-resource boundaries |
 | [Agent handoff and award checklist](ProofPay_Agent_Handoff_and_InstaAward_Checklist.md) | Execution gates, remaining unknowns, and InstaAward preparation |
 | [Decision register](docs/DECISIONS.md) | Accepted design choices and decisions still needed |
 

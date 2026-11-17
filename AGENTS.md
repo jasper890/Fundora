@@ -15,4 +15,6 @@ Use [the OpenSpec workflow](docs/OPENSPEC.md) to track the existing six tasks. O
 - No secrets, personal evidence, or private storage locations in Git, logs, screenshots, or chain arguments. Never commit real wallet material.
 - No subagent delegation unless the user explicitly requests it. Routine local decisions do not need repeated approval.
 
+For UI tooling and design references, read [UI design tooling](docs/UI_DESIGN_TOOLING.md). The vendored daisyUI skill applies to Tailwind/daisyUI work; the current app has no daisyUI runtime, so do not add daisyUI classes until that runtime is intentionally installed. For this web app, use Apple's Human Interface Guidelines as design reference only; do not use Apple UI Kit assets in web mockups or product code.
+
 For conflicts, use the document ownership rules in the engineering standard. Ask only when a genuine unresolved conflict changes behavior or authorized scope.
