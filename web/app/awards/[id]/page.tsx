@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { Notice } from "@/components/Notice";
 import { PageHeading } from "@/components/PageHeading";
+import { SmokeContext } from "@/components/SmokeContext";
 import { Tracker } from "@/components/Tracker";
+import { WalletPanel } from "@/components/WalletPanel";
 import { sql } from "@/lib/db";
 import { isAwardVisible } from "@/lib/permissions";
 import {
@@ -13,7 +15,6 @@ import {
 } from "@/lib/presentation";
 import { requireSessionUser } from "@/lib/session";
 import type { AwardView, MemberView, Role } from "@/lib/types";
-import { WalletPanel } from "@/components/WalletPanel";
 
 async function loadAward(id: string): Promise<(AwardView & { verifier_sync_required: boolean; program_title: string; version: number; latest_evidence_id: string | null }) | null> {
   const db = sql();
@@ -109,7 +110,7 @@ export default async function AwardPage({
     award = await loadAward(id);
   } catch {
     return (
-      <AppShell username={user.username}>
+      <AppShell username={user.username} isStaff={user.is_staff}>
         <Notice>Database is not reachable. Start Supabase and seed demo data.</Notice>
       </AppShell>
     );
@@ -122,9 +123,29 @@ export default async function AwardPage({
   const isRecipient = award.recipient_member.user_id === user.id;
   const isVerifier = award.verifier_member.user_id === user.id;
   const isSponsor = award.sponsor_member.user_id === user.id;
+  const roleLabel = isSponsor
+    ? "SPONSOR"
+    : isVerifier
+      ? "VERIFIER"
+      : isRecipient
+        ? "RECIPIENT"
+        : user.is_staff
+          ? "ADMIN"
+          : "MEMBER";
+  const assignedWallet = isSponsor
+    ? award.sponsor_member.public_wallet
+    : isVerifier
+      ? award.verifier_member.public_wallet
+      : isRecipient
+        ? award.recipient_member.public_wallet
+        : null;
 
   return (
-    <AppShell username={user.username}>
+    <AppShell
+      username={user.username}
+      roleLabel={roleLabel}
+      isStaff={user.is_staff}
+    >
       <p className="lead">
         <Link href="/programs">← Programs</Link>
       </p>
@@ -132,14 +153,21 @@ export default async function AwardPage({
         title={`${award.program_title}`}
         lead={`Award ${award.id.slice(0, 8)} · 20 Testnet XLM · no real monetary value`}
       />
+      <SmokeContext
+        username={user.username}
+        roleLabel={roleLabel}
+        assignedWallet={assignedWallet}
+        nextStepText={step}
+        awardStatus={award.status}
+      />
       <Notice>
         <strong>{lines[0]}</strong>
         <div style={{ marginTop: "0.5rem" }}>{step}</div>
       </Notice>
 
       {isRecipient ? (
-        <section style={{ margin: "1.5rem 0" }}>
-          <h2 style={{ fontSize: "1.05rem" }}>Add a new evidence revision</h2>
+        <section className="award-section">
+          <h2>Add a new evidence revision</h2>
           <p className="lead">
             Upload one to three PDF/JPEG/PNG files (max 5 MiB each), then sign
             submission from Wallet actions.
@@ -151,8 +179,8 @@ export default async function AwardPage({
       ) : null}
 
       {isVerifier ? (
-        <section style={{ margin: "1.5rem 0" }}>
-          <h2 style={{ fontSize: "1.05rem" }}>Review revision</h2>
+        <section className="award-section">
+          <h2>Review revision</h2>
           <p className="lead">
             Check the original source before requesting approval or changes.
           </p>
@@ -162,30 +190,23 @@ export default async function AwardPage({
         </section>
       ) : null}
 
-      <section style={{ margin: "1.5rem 0" }}>
-        <h2 style={{ fontSize: "1.05rem" }}>Progress</h2>
+      <section className="award-section">
+        <h2>Progress</h2>
         <Tracker steps={steps} />
       </section>
 
-      <section style={{ margin: "1.5rem 0" }}>
-        <h2 style={{ fontSize: "1.05rem" }}>Wallet actions</h2>
+      <section className="award-section">
+        <h2>Wallet actions</h2>
         <WalletPanel
           awardId={award.id}
+          awardStatus={award.status}
           isSponsor={isSponsor}
           isRecipient={isRecipient}
           isVerifier={isVerifier}
           hasLedger={Boolean(award.last_confirmed_ledger)}
           expectedVersion={String(award.version)}
           evidenceId={award.latest_evidence_id}
-          assignedWallet={
-            isSponsor
-              ? award.sponsor_member.public_wallet
-              : isVerifier
-                ? award.verifier_member.public_wallet
-                : isRecipient
-                  ? award.recipient_member.public_wallet
-                  : null
-          }
+          assignedWallet={assignedWallet}
         />
       </section>
 

@@ -86,14 +86,14 @@ export default async function AuditPage({
     `) as unknown as typeof ops;
   } catch {
     return (
-      <AppShell username={user.username}>
+      <AppShell username={user.username} isStaff={user.is_staff}>
         <Notice>Database unavailable.</Notice>
       </AppShell>
     );
   }
 
   return (
-    <AppShell username={user.username}>
+    <AppShell username={user.username} isStaff={user.is_staff}>
       <p className="lead">
         <Link href={`/awards/${id}`}>← Award</Link>
       </p>

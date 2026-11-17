@@ -39,14 +39,14 @@ export default async function AdminProgramPage({
     `) as unknown as typeof users;
   } catch {
     return (
-      <AppShell username={user.username} roleLabel="ADMIN">
+      <AppShell username={user.username} roleLabel="ADMIN" isStaff>
         <Notice>Database unavailable.</Notice>
       </AppShell>
     );
   }
 
   return (
-    <AppShell username={user.username} roleLabel="ADMIN">
+    <AppShell username={user.username} roleLabel="ADMIN" isStaff>
       <p className="lead">
         <Link href="/admin">← Admin</Link>
       </p>

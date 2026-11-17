@@ -15,5 +15,9 @@ coverage.xml
 htmlcov/
 web/.env.local
 web/node_modules/
+web/.next/
+web/.next-e2e/
+web/test-results/
+web/playwright-report/
 supabase/.temp/
 supabase/.branches/

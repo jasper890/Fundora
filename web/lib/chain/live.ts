@@ -17,7 +17,12 @@ import {
   xdr,
 } from "@stellar/stellar-sdk";
 import { ChainError, FEE_CEILING, NETWORK_PASSPHRASE } from "./constants";
-import type { AwardSnapshot, PreparedEnvelope, RpcGateway } from "./rpc";
+import type {
+  AwardSnapshot,
+  PreparedEnvelope,
+  RpcGateway,
+  TxOutcome,
+} from "./rpc";
 
 const NETWORK = NETWORK_PASSPHRASE || Networks.TESTNET;
 
@@ -197,14 +202,34 @@ export class LiveRpc implements RpcGateway {
     return { hash: send.hash };
   }
 
-  async getTransaction(
-    hash: string,
-  ): Promise<"SUCCESS" | "FAILED" | "NOT_FOUND" | "PENDING"> {
+  async getTransaction(hash: string): Promise<TxOutcome> {
     const result = await this.server.getTransaction(hash);
-    if (result.status === rpc.Api.GetTransactionStatus.SUCCESS) return "SUCCESS";
-    if (result.status === rpc.Api.GetTransactionStatus.FAILED) return "FAILED";
-    if (result.status === rpc.Api.GetTransactionStatus.NOT_FOUND) return "NOT_FOUND";
-    return "PENDING";
+    if (result.status === rpc.Api.GetTransactionStatus.FAILED) {
+      return { status: "FAILED" };
+    }
+    if (result.status === rpc.Api.GetTransactionStatus.NOT_FOUND) {
+      return { status: "NOT_FOUND" };
+    }
+    if (result.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
+      return { status: "PENDING" };
+    }
+
+    let contractId: string | undefined;
+    try {
+      if ("returnValue" in result && result.returnValue) {
+        contractId = Address.fromScVal(result.returnValue).toString();
+        if (!isContractId(contractId)) contractId = undefined;
+      }
+    } catch {
+      contractId = undefined;
+    }
+
+    const ledger =
+      "ledger" in result && typeof result.ledger === "number"
+        ? result.ledger
+        : undefined;
+
+    return { status: "SUCCESS", ledger, contractId };
   }
 }
 

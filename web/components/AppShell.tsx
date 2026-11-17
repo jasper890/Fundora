@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { SignOutButton } from "./SignOutButton";
 import { SkipLink } from "./SkipLink";
 import { TestnetBanner } from "./TestnetBanner";
@@ -7,9 +10,22 @@ type Props = {
   children: React.ReactNode;
   username?: string;
   roleLabel?: string;
+  isStaff?: boolean;
 };
 
-export function AppShell({ children, username, roleLabel }: Props) {
+function navCurrent(pathname: string, href: string): boolean {
+  if (href === "/programs") {
+    return pathname === "/programs" || pathname.startsWith("/programs/");
+  }
+  if (href === "/admin") {
+    return pathname === "/admin" || pathname.startsWith("/admin/");
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function AppShell({ children, username, roleLabel, isStaff }: Props) {
+  const pathname = usePathname() || "/";
+
   return (
     <>
       <SkipLink />
@@ -20,17 +36,42 @@ export function AppShell({ children, username, roleLabel }: Props) {
             ProofPay<span>.</span>
           </p>
           <nav aria-label="Primary">
-            <Link href="/programs" aria-current="page">
+            <Link
+              href="/programs"
+              aria-current={navCurrent(pathname, "/programs") ? "page" : undefined}
+            >
               Programs
             </Link>
-            <Link href="/wallet-check">Wallet check</Link>
-            <Link href="/password-change">Account</Link>
+            <Link
+              href="/wallet-check"
+              aria-current={
+                navCurrent(pathname, "/wallet-check") ? "page" : undefined
+              }
+            >
+              Wallet check
+            </Link>
+            <Link
+              href="/password-change"
+              aria-current={
+                navCurrent(pathname, "/password-change") ? "page" : undefined
+              }
+            >
+              Account
+            </Link>
+            {isStaff ? (
+              <Link
+                href="/admin"
+                aria-current={navCurrent(pathname, "/admin") ? "page" : undefined}
+              >
+                Admin
+              </Link>
+            ) : null}
           </nav>
           {(username || roleLabel) && (
-            <div style={{ marginTop: "2rem", fontSize: "0.8rem" }}>
+            <div className="sidebar-user">
               {username && <div>{username}</div>}
               {roleLabel && <div>{roleLabel}</div>}
-              <div style={{ marginTop: "0.75rem" }}>
+              <div className="sidebar-signout">
                 <SignOutButton />
               </div>
             </div>

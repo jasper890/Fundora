@@ -30,7 +30,7 @@ export default async function EvidencePage({
     expectedRevision = Number(rows[0].evidence_revision);
   } catch {
     return (
-      <AppShell username={user.username}>
+      <AppShell username={user.username} roleLabel="RECIPIENT" isStaff={user.is_staff}>
         <Notice>Database unavailable.</Notice>
       </AppShell>
     );
@@ -38,7 +38,11 @@ export default async function EvidencePage({
   if (!recipientOk) notFound();
 
   return (
-    <AppShell username={user.username}>
+    <AppShell
+      username={user.username}
+      roleLabel="RECIPIENT"
+      isStaff={user.is_staff}
+    >
       <p className="lead">
         <Link href={`/awards/${id}`}>← Award</Link>
       </p>
@@ -47,6 +51,16 @@ export default async function EvidencePage({
         lead="One to three PDF, JPEG or PNG files, up to 5 MiB each. Files stay private."
       />
       <EvidenceUploadForm awardId={id} expectedRevision={expectedRevision} />
+      <Notice>
+        After upload finishes, return to the award and use{" "}
+        <strong>Prepare submission</strong> with the Freighter account that
+        matches your assigned recipient wallet.
+      </Notice>
+      <p className="lead" style={{ marginTop: "1rem" }}>
+        <Link className="button" href={`/awards/${id}`}>
+          Back to award · prepare submission
+        </Link>
+      </p>
     </AppShell>
   );
 }

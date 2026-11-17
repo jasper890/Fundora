@@ -43,7 +43,7 @@ export default async function ReviewPage({
     expectedVersion = String(rows[0].version ?? 0);
   } catch {
     return (
-      <AppShell username={user.username}>
+      <AppShell username={user.username} roleLabel="VERIFIER" isStaff={user.is_staff}>
         <Notice>Database unavailable.</Notice>
       </AppShell>
     );
@@ -52,7 +52,7 @@ export default async function ReviewPage({
   if (!allowed) notFound();
 
   return (
-    <AppShell username={user.username} roleLabel="VERIFIER">
+    <AppShell username={user.username} roleLabel="VERIFIER" isStaff={user.is_staff}>
       <p className="lead">
         <Link href={`/awards/${id}`}>← Award</Link>
       </p>

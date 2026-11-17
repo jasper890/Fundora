@@ -277,7 +277,20 @@ export async function POST(
         "An open chain operation already reserves this signer. Cancel unsigned or wait for confirmation.",
       );
     }
-    console.error(error);
-    return jsonError("RPC_UNAVAILABLE", 503);
+    console.error("prepare failed", resolvedAction, error);
+    const message =
+      error instanceof Error ? error.message.slice(0, 240) : "Prepare failed";
+    const lower = message.toLowerCase();
+    const looksLikeRpc =
+      lower.includes("fetch failed") ||
+      lower.includes("econnrefused") ||
+      lower.includes("network") ||
+      lower.includes("timeout") ||
+      lower.includes("503");
+    return jsonError(
+      looksLikeRpc ? "RPC_UNAVAILABLE" : "PREPARATION_FAILED",
+      looksLikeRpc ? 503 : 400,
+      message,
+    );
   }
 }

@@ -23,14 +23,14 @@ export default async function AdminHomePage() {
     `) as unknown as typeof programs;
   } catch {
     return (
-      <AppShell username={user.username} roleLabel="ADMIN">
+      <AppShell username={user.username} roleLabel="ADMIN" isStaff>
         <Notice>Database unavailable.</Notice>
       </AppShell>
     );
   }
 
   return (
-    <AppShell username={user.username} roleLabel="ADMIN">
+    <AppShell username={user.username} roleLabel="ADMIN" isStaff>
       <PageHeading
         title="Administrator workspace"
         lead="Provision members and manage program access. No payment authority and no automatic evidence access."

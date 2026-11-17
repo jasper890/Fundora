@@ -21,7 +21,7 @@ export async function reconcileOperation(operationId: string) {
   }
 
   const live = new LiveRpc();
-  let outcome: "SUCCESS" | "FAILED" | "NOT_FOUND" | "PENDING" = "PENDING";
+  let outcome: Awaited<ReturnType<LiveRpc["getTransaction"]>>;
   try {
     outcome = await live.getTransaction(String(op.signed_hash));
   } catch {
@@ -35,7 +35,7 @@ export async function reconcileOperation(operationId: string) {
     return { ...op, status: "UNKNOWN" };
   }
 
-  if (outcome === "PENDING" || outcome === "NOT_FOUND") {
+  if (outcome.status === "PENDING" || outcome.status === "NOT_FOUND") {
     await db`
       update chain_operation
       set status = 'UNKNOWN',
@@ -47,7 +47,7 @@ export async function reconcileOperation(operationId: string) {
     return { ...op, status: "UNKNOWN" };
   }
 
-  if (outcome === "FAILED") {
+  if (outcome.status === "FAILED") {
     await db`
       update chain_operation
       set status = 'CONFIRMED_FAILED',
@@ -61,7 +61,7 @@ export async function reconcileOperation(operationId: string) {
     return { ...op, status: "CONFIRMED_FAILED" };
   }
 
-  const ledger = Math.floor(Date.now() / 1000);
+  const ledger = outcome.ledger ?? Math.floor(Date.now() / 1000);
   await db.begin(async (tx) => {
     await tx`
       update chain_operation
@@ -80,6 +80,7 @@ export async function reconcileOperation(operationId: string) {
       action: String(op.action),
       ledger,
       intent: op.intent as Record<string, unknown>,
+      contractId: outcome.contractId ?? null,
     });
   });
   return { ...op, status: "CONFIRMED_SUCCESS", confirmed_ledger: ledger };

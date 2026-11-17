@@ -22,6 +22,12 @@ export type PreparedEnvelope = {
   maxTime: number;
 };
 
+export type TxOutcome = {
+  status: "SUCCESS" | "FAILED" | "NOT_FOUND" | "PENDING";
+  ledger?: number;
+  contractId?: string;
+};
+
 export interface RpcGateway {
   readAward(contractId: string | null): Promise<AwardSnapshot>;
   prepare(args: {
@@ -31,9 +37,7 @@ export interface RpcGateway {
     snapshot: AwardSnapshot;
   }): Promise<PreparedEnvelope>;
   submit(signedXdr: string): Promise<{ hash: string }>;
-  getTransaction(
-    hash: string,
-  ): Promise<"SUCCESS" | "FAILED" | "NOT_FOUND" | "PENDING">;
+  getTransaction(hash: string): Promise<TxOutcome>;
 }
 
 export class FakeRpc implements RpcGateway {
@@ -66,7 +70,7 @@ export class FakeRpc implements RpcGateway {
   async submit(signedXdr: string): Promise<{ hash: string }> {
     return { hash: `sub-${signedXdr.slice(0, 12)}` };
   }
-  async getTransaction(): Promise<"SUCCESS" | "FAILED" | "NOT_FOUND" | "PENDING"> {
-    return "PENDING";
+  async getTransaction(): Promise<TxOutcome> {
+    return { status: "PENDING" };
   }
 }

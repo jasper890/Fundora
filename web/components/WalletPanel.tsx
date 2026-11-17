@@ -1,17 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "./Button";
+import { ChainPreview } from "./ChainPreview";
 import { Notice } from "./Notice";
+import type { AwardStatus } from "@/lib/types";
 import {
   freighterAvailable,
   freighterConnect,
   freighterSign,
 } from "@/lib/wallet/freighter";
+import {
+  clearStoredOp,
+  readStoredOp,
+  TERMINAL_OP,
+  writeStoredOp,
+} from "@/lib/wallet/opSession";
+import {
+  primaryPrepareAction,
+  walletRoleFromFlags,
+} from "@/lib/wallet/primaryAction";
 import { requireAssignedWallet } from "@/lib/wallet/validation";
 
 type Props = {
   awardId: string;
+  awardStatus: AwardStatus;
   isSponsor: boolean;
   isRecipient: boolean;
   isVerifier: boolean;
@@ -21,45 +34,182 @@ type Props = {
   assignedWallet?: string | null;
 };
 
-const ACTIONS: { action: string; label: string; when: (p: Props) => boolean }[] =
-  [
-    {
-      action: "DEPLOY",
-      label: "Review award deployment",
-      when: (p) => p.isSponsor && !p.hasLedger,
-    },
-    {
-      action: "FUND",
-      label: "Prepare funding",
-      when: (p) => p.isSponsor && p.hasLedger,
-    },
-    {
-      action: "SUBMIT",
-      label: "Prepare submission",
-      when: (p) => p.isRecipient,
-    },
-    {
-      action: "APPROVE",
-      label: "Prepare approval",
-      when: (p) => p.isVerifier,
-    },
-    {
-      action: "PAY",
-      label: "Prepare payment",
-      when: (p) => p.isSponsor && p.hasLedger,
-    },
-  ];
+function formatApiError(data: unknown, fallback: string): string {
+  if (!data || typeof data !== "object") return fallback;
+  const err = (data as { error?: unknown }).error;
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object") {
+    const obj = err as { code?: string; message?: string };
+    if (obj.message && obj.code && obj.message !== obj.code) {
+      return `${obj.code}: ${obj.message}`;
+    }
+    return obj.message || obj.code || fallback;
+  }
+  return fallback;
+}
 
 export function WalletPanel(props: Props) {
   const [message, setMessage] = useState<string | null>(null);
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null);
   const [operationId, setOperationId] = useState<string | null>(null);
+  const [opStatus, setOpStatus] = useState<string | null>(null);
   const [unsignedXdr, setUnsignedXdr] = useState<string | null>(null);
   const [networkPassphrase, setNetworkPassphrase] = useState(
     "Test SDF Network ; September 2015",
   );
   const [wallet, setWallet] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [polling, setPolling] = useState(false);
+  const hydrated = useRef(false);
+  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const role = walletRoleFromFlags(props);
+  const primary = primaryPrepareAction({
+    role,
+    status: props.awardStatus,
+    hasLedger: props.hasLedger,
+    hasEvidence: Boolean(props.evidenceId),
+  });
+
+  const stopPolling = useCallback(() => {
+    if (pollTimer.current) {
+      clearInterval(pollTimer.current);
+      pollTimer.current = null;
+    }
+    setPolling(false);
+  }, []);
+
+  const applyOpenOp = useCallback(
+    (op: {
+      id: string;
+      status: string;
+      unsigned_xdr?: string | null;
+      preview?: Record<string, unknown> | null;
+    }) => {
+      setOperationId(op.id);
+      setOpStatus(op.status);
+      const xdr =
+        typeof op.unsigned_xdr === "string" && op.unsigned_xdr
+          ? op.unsigned_xdr
+          : null;
+      setUnsignedXdr(xdr);
+      if (op.preview && typeof op.preview === "object") {
+        setPreview(op.preview);
+        if (typeof op.preview.network_passphrase === "string") {
+          setNetworkPassphrase(op.preview.network_passphrase);
+        }
+      }
+      writeStoredOp(props.awardId, {
+        operationId: op.id,
+        unsignedXdr: xdr,
+        networkPassphrase:
+          typeof op.preview?.network_passphrase === "string"
+            ? op.preview.network_passphrase
+            : null,
+      });
+    },
+    [props.awardId],
+  );
+
+  const refreshStatus = useCallback(
+    async (id?: string) => {
+      const opId = id ?? operationId;
+      if (!opId) return;
+      setBusy(true);
+      const response = await fetch(`/api/v1/operations/${opId}/status`);
+      const data = await response.json().catch(() => ({}));
+      setBusy(false);
+      if (!response.ok) {
+        setMessage(formatApiError(data, "Status failed"));
+        return;
+      }
+      const status = String(data.status ?? "");
+      setOpStatus(status);
+      setPreview(data);
+      setMessage(`Status: ${status}`);
+      if (TERMINAL_OP.has(status)) {
+        stopPolling();
+        clearStoredOp(props.awardId);
+        setUnsignedXdr(null);
+        setOperationId(null);
+        if (status === "CONFIRMED_SUCCESS") {
+          setMessage(
+            "Confirmed on Testnet. Reload this award to see the updated state.",
+          );
+        }
+      }
+    },
+    [operationId, props.awardId, stopPolling],
+  );
+
+  const startPolling = useCallback(
+    (id: string) => {
+      stopPolling();
+      setPolling(true);
+      pollTimer.current = setInterval(() => {
+        void refreshStatus(id);
+      }, 2500);
+    },
+    [refreshStatus, stopPolling],
+  );
+
+  useEffect(() => {
+    if (hydrated.current) return;
+    hydrated.current = true;
+    let cancelled = false;
+
+    async function hydrate() {
+      const stored = readStoredOp(props.awardId);
+      try {
+        const response = await fetch(
+          `/api/v1/awards/${props.awardId}/operations/open`,
+        );
+        const data = await response.json().catch(() => ({}));
+        if (cancelled || !response.ok) {
+          if (stored?.operationId && !cancelled) {
+            setOperationId(stored.operationId);
+            setUnsignedXdr(stored.unsignedXdr ?? null);
+            if (stored.networkPassphrase) {
+              setNetworkPassphrase(stored.networkPassphrase);
+            }
+            setMessage("Restored open operation from this browser session.");
+          }
+          return;
+        }
+        const op = data.operation as
+          | {
+              id: string;
+              status: string;
+              action?: string;
+              unsigned_xdr?: string | null;
+              preview?: Record<string, unknown> | null;
+            }
+          | null;
+        if (!op) {
+          clearStoredOp(props.awardId);
+          return;
+        }
+        applyOpenOp({
+          ...op,
+          unsigned_xdr: op.unsigned_xdr || stored?.unsignedXdr || null,
+        });
+        setMessage(
+          `Resumed ${op.action ?? "operation"} (${op.status}). Continue Sign, Refresh, or Cancel.`,
+        );
+        if (op.status === "SUBMITTED" || op.status === "UNKNOWN") {
+          startPolling(op.id);
+        }
+      } catch {
+        /* ignore hydrate network errors */
+      }
+    }
+
+    void hydrate();
+    return () => {
+      cancelled = true;
+      stopPolling();
+    };
+  }, [applyOpenOp, props.awardId, startPolling, stopPolling]);
 
   async function connectWallet() {
     setBusy(true);
@@ -96,7 +246,11 @@ export function WalletPanel(props: Props) {
     setMessage(null);
     setPreview(null);
     setOperationId(null);
+    setOpStatus(null);
     setUnsignedXdr(null);
+    stopPolling();
+    clearStoredOp(props.awardId);
+
     const version = props.expectedVersion ?? "0";
     const params: Record<string, unknown> =
       action === "SUBMIT" ? { evidence_id: props.evidenceId } : {};
@@ -123,20 +277,28 @@ export function WalletPanel(props: Props) {
     const data = await response.json().catch(() => ({}));
     setBusy(false);
     if (!response.ok) {
-      setMessage(
-        typeof data.error === "string"
-          ? data.error
-          : data.error?.code || "Prepare failed",
-      );
+      setMessage(formatApiError(data, "Prepare failed"));
       return;
     }
+    const id = typeof data.id === "string" ? data.id : null;
+    const xdr =
+      typeof data.unsigned_xdr === "string" ? data.unsigned_xdr : null;
     setPreview(data.preview ?? data);
-    setOperationId(data.id ?? null);
-    setUnsignedXdr(
-      typeof data.unsigned_xdr === "string" ? data.unsigned_xdr : null,
-    );
+    setOperationId(id);
+    setOpStatus(typeof data.status === "string" ? data.status : "PREPARED");
+    setUnsignedXdr(xdr);
     if (typeof data.preview?.network_passphrase === "string") {
       setNetworkPassphrase(data.preview.network_passphrase);
+    }
+    if (id) {
+      writeStoredOp(props.awardId, {
+        operationId: id,
+        unsignedXdr: xdr,
+        networkPassphrase:
+          typeof data.preview?.network_passphrase === "string"
+            ? data.preview.network_passphrase
+            : null,
+      });
     }
     setMessage(
       data.preview?.mode === "live"
@@ -180,41 +342,35 @@ export function WalletPanel(props: Props) {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setMessage(
-          typeof data.error === "string"
-            ? data.error
-            : data.error?.code || "Submit failed",
-        );
+        setMessage(formatApiError(data, "Submit failed"));
       } else {
         setPreview(data);
-        setMessage(
-          data.mode === "live"
-            ? `Submitted (${data.status}). Refresh status until confirmed.`
-            : `Confirmed locally (${data.status}). Reload the award.`,
-        );
+        const status = String(data.status ?? "SUBMITTED");
+        setOpStatus(status);
+        setUnsignedXdr(null);
+        if (data.mode === "live") {
+          setMessage(
+            `Submitted (${status}). Checking confirmation…`,
+          );
+          if (status === "SUBMITTED" || status === "UNKNOWN") {
+            startPolling(operationId);
+          } else if (TERMINAL_OP.has(status)) {
+            clearStoredOp(props.awardId);
+            setOperationId(null);
+            setMessage(
+              `Confirmed (${status}). Reload this award to see the updated state.`,
+            );
+          }
+        } else {
+          clearStoredOp(props.awardId);
+          setOperationId(null);
+          setMessage(`Confirmed locally (${status}). Reload the award.`);
+        }
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Sign/submit failed");
     }
     setBusy(false);
-  }
-
-  async function refreshStatus() {
-    if (!operationId) return;
-    setBusy(true);
-    const response = await fetch(`/api/v1/operations/${operationId}/status`);
-    const data = await response.json().catch(() => ({}));
-    setBusy(false);
-    if (!response.ok) {
-      setMessage(
-        typeof data.error === "string"
-          ? data.error
-          : data.error?.code || "Status failed",
-      );
-      return;
-    }
-    setMessage(`Status: ${data.status}`);
-    setPreview(data);
   }
 
   async function abandon() {
@@ -228,54 +384,78 @@ export function WalletPanel(props: Props) {
     const data = await response.json().catch(() => ({}));
     setBusy(false);
     if (!response.ok) {
-      setMessage(
-        typeof data.error === "string"
-          ? data.error
-          : data.error?.code || "Abandon failed",
-      );
+      setMessage(formatApiError(data, "Abandon failed"));
       return;
     }
+    stopPolling();
+    clearStoredOp(props.awardId);
     setMessage("Unsigned preparation abandoned.");
     setOperationId(null);
+    setOpStatus(null);
     setUnsignedXdr(null);
+    setPreview(null);
   }
 
-  const available = ACTIONS.filter((item) => item.when(props));
+  const canSign =
+    Boolean(operationId && unsignedXdr) &&
+    (opStatus === "PREPARED" || opStatus === "SIGNED" || opStatus == null);
+  const canAbandon =
+    Boolean(operationId) &&
+    (opStatus === "PREPARED" ||
+      opStatus === "BUILDING" ||
+      opStatus === "SIGNED" ||
+      opStatus == null);
 
   return (
-    <div>
+    <div className="wallet-panel">
       <p className="lead">
-        Prepare an allowed action. Your wallet signs only after a server preview.
-        Testnet XLM has no real monetary value.
+        Prepare the next allowed action. Your wallet signs only after a server
+        preview. Testnet XLM has no real monetary value.
       </p>
       {props.assignedWallet ? (
         <p className="lead">
           Assigned signer: {props.assignedWallet.slice(0, 8)}…
           {wallet ? ` · Connected ${wallet.slice(0, 8)}…` : ""}
+          {opStatus ? ` · Op ${opStatus}` : ""}
+          {polling ? " · Polling…" : ""}
         </p>
       ) : null}
-      <div
-        className="buttons"
-        style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}
-      >
-        <Button type="button" variant="secondary" disabled={busy} onClick={connectWallet}>
+      <div className="wallet-actions">
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={busy}
+          onClick={connectWallet}
+        >
           Connect Freighter
         </Button>
-        {available.map((item) => (
+        {primary ? (
           <Button
-            key={item.action}
             type="button"
             data-preview
-            disabled={busy}
-            onClick={() => prepare(item.action)}
+            disabled={
+              busy ||
+              Boolean(operationId && !TERMINAL_OP.has(opStatus || ""))
+            }
+            onClick={() => prepare(primary.action)}
           >
-            {item.label}
+            {primary.label}
           </Button>
-        ))}
+        ) : props.isRecipient &&
+          (props.awardStatus === "FUNDED" || props.awardStatus === "SUBMITTED") &&
+          !props.evidenceId ? (
+          <p className="lead wallet-no-action">
+            Upload evidence above, then return here to prepare submission.
+          </p>
+        ) : (
+          <p className="lead wallet-no-action">
+            No prepare action for your role in this award state.
+          </p>
+        )}
         <Button
           type="button"
           data-submit-local
-          disabled={busy || !operationId || !unsignedXdr}
+          disabled={busy || !canSign}
           onClick={() => signAndSubmit()}
         >
           Sign and submit
@@ -292,28 +472,14 @@ export function WalletPanel(props: Props) {
         <Button
           type="button"
           variant="secondary"
-          disabled={busy || !operationId}
+          disabled={busy || !canAbandon}
           onClick={() => abandon()}
         >
           Cancel unsigned
         </Button>
       </div>
       {message ? <Notice>{message}</Notice> : null}
-      {preview ? (
-        <pre
-          data-chain-message
-          style={{
-            marginTop: "1rem",
-            padding: "1rem",
-            background: "var(--soft)",
-            borderRadius: 8,
-            overflow: "auto",
-            fontSize: 12,
-          }}
-        >
-          {JSON.stringify(preview, null, 2)}
-        </pre>
-      ) : null}
+      {preview ? <ChainPreview preview={preview} /> : null}
     </div>
   );
 }

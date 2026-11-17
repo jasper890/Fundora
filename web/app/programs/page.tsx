@@ -43,7 +43,11 @@ export default async function ProgramsPage() {
       : null;
 
   return (
-    <AppShell username={user.username} roleLabel={primaryRole ?? undefined}>
+    <AppShell
+      username={user.username}
+      roleLabel={primaryRole ?? undefined}
+      isStaff={user.is_staff}
+    >
       <PageHeading title={copy.page_title} lead={programs[0]?.title} />
       {dbError ? <Notice>{dbError}</Notice> : null}
 
@@ -97,6 +101,9 @@ export default async function ProgramsPage() {
                   <div className="lead" style={{ margin: "0.35rem 0 0" }}>
                     {statusLines(award)[0]}
                     {userActsNow(award, user) ? " · Needs your action" : ""}
+                  </div>
+                  <div className="lead" style={{ margin: "0.25rem 0 0" }}>
+                    Next: {nextStep(award, user)}
                   </div>
                 </div>
                 <Link className="button secondary" href={`/awards/${award.id}`}>

@@ -11,16 +11,25 @@ export async function applyConfirmedAction(
     action: string;
     ledger: number;
     intent: Record<string, unknown>;
+    /** Real Testnet contract id from deploy returnValue; FakeRpc synthesizes one. */
+    contractId?: string | null;
   },
 ) {
   const action = args.action.toUpperCase();
   if (action === "DEPLOY") {
+    const fallback = `C${args.awardId.replace(/-/g, "").slice(0, 55)}`;
+    const contractId =
+      args.contractId && args.contractId.startsWith("C") && args.contractId.length >= 56
+        ? args.contractId
+        : fallback;
+    // Constructor leaves on-chain version at 0; do not bump locally or FUND
+    // will simulate with the wrong expected_version.
     await tx`
       update award
       set last_confirmed_ledger = ${args.ledger},
-          contract_id = coalesce(nullif(contract_id, ''), ${`C${args.awardId.replace(/-/g, "").slice(0, 55)}`}),
+          contract_id = coalesce(nullif(contract_id, ''), ${contractId}),
           network_id = 'TESTNET',
-          version = version + 1
+          version = 0
       where id = ${args.awardId}
     `;
     return;
