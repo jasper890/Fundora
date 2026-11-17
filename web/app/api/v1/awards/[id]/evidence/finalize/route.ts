@@ -50,7 +50,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         where a.id = ${id} for update of a`;
       if (!award || award.recipient_user !== actor.id || !award.recipient_active) throw new Error("NOT_FOUND");
       if (!["FUNDED", "SUBMITTED"].includes(award.status) || new Date(award.claim_deadline).getTime() < Date.now()) throw new Error("INVALID_STATE");
+      if (award.verifier_sync_required) throw new Error("EVIDENCE_SUBMISSION_REQUIRED");
       if (Number(award.evidence_revision) !== Number(current.expected_revision)) throw new Error("STALE_REVISION");
+      const open = await tx`select id from chain_operation where award_id = ${id}
+        and status in ('BUILDING', 'PREPARED', 'SIGNED', 'SUBMITTED', 'UNKNOWN') and reserves_source = true limit 1`;
+      if (open[0]) throw new Error("UNRESOLVED_OPERATION");
       const revision = Number(award.evidence_revision) + 1;
       const nonce = randomBytes(32).toString("hex");
       const manifest = canonicalManifest({ awardId: id, revision, nonce,
@@ -72,6 +76,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (abandoned[0]) await deleteEvidenceObjects(abandoned[0].object_paths as string[]).catch(() => undefined);
     const code = error instanceof Error ? error.message : "STORAGE_UNAVAILABLE";
     if (code === "NOT_FOUND") return jsonError(code, 404);
+    if (code === "EVIDENCE_SUBMISSION_REQUIRED") return jsonError(code, 409, "Submit the current evidence revision from the award before uploading another revision.");
+    if (code === "UNRESOLVED_OPERATION") return jsonError(code, 409, "Finish or cancel the open transaction before uploading another revision.");
     if (["STALE_REVISION", "INVALID_STATE", "ALREADY_FINALIZED", "RESERVATION_EXPIRED"].includes(code)) return jsonError(code, 409, "This award or upload reservation changed. Refresh before uploading a new revision.");
     if (code === "INVALID_BODY") return jsonError(code, 400);
     if (code === "INVALID_FILE") return jsonError(code, 400, EVIDENCE_TYPE_ERROR);

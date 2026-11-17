@@ -67,11 +67,25 @@ describe("evidence finalization trust boundary", () => {
     expect((await post()).status).toBe(409);
     expect(mocks.tx).toHaveBeenCalledTimes(1);
   });
+  it("requires signing the pending evidence revision before uploading another", async () => {
+    mocks.tx.mockResolvedValueOnce([{ ...reservation, expected_revision: 1 }]).mockResolvedValueOnce([{
+      recipient_user: "recipient", recipient_active: true, status: "FUNDED", evidence_revision: 1,
+      verifier_sync_required: true, claim_deadline: new Date(Date.now() + 60_000),
+    }]).mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: "stored-version" }]).mockResolvedValue([]);
+    expect((await post()).status).toBe(409);
+  });
+  it("refuses a new evidence revision while a chain operation is unresolved", async () => {
+    mocks.tx.mockResolvedValueOnce([reservation]).mockResolvedValueOnce([{
+      recipient_user: "recipient", recipient_active: true, status: "FUNDED", evidence_revision: 0,
+      claim_deadline: new Date(Date.now() + 60_000),
+    }]).mockResolvedValueOnce([{ id: "pending-op" }]).mockResolvedValue([]);
+    expect((await post()).status).toBe(409);
+  });
   it("stores a revision only after verifying actual bytes", async () => {
     mocks.tx.mockResolvedValueOnce([reservation]).mockResolvedValueOnce([{
       recipient_user: "recipient", recipient_active: true, status: "FUNDED", evidence_revision: 0,
       claim_deadline: new Date(Date.now() + 60_000),
-    }]).mockResolvedValueOnce([{ id: "stored-version" }]).mockResolvedValue([]);
+    }]).mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: "stored-version" }]).mockResolvedValue([]);
     const response = await post();
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ evidence_id: "stored-version", revision: 1 });

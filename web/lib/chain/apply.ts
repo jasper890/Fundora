@@ -148,7 +148,7 @@ export async function applyConfirmedAction(
   if (action === "REPLACE_VERIFIER") {
     const payload = args.intent.payload as { params: { new_verifier_member_id: string } };
     await tx`update award set verifier_member_id = ${payload.params.new_verifier_member_id},
-      verifier_hold = false, verifier_sync_required = false,
+      verifier_hold = false,
       status = case when status in ('APPROVED', 'REJECTED') then 'SUBMITTED' else status end,
       last_confirmed_ledger = ${args.ledger}, version = version + 1 where id = ${args.awardId}`;
     return;

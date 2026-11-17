@@ -70,6 +70,7 @@ export function primaryPrepareAction(
     context.role === "SPONSOR" &&
     context.status === "APPROVED" &&
     !context.hasHold &&
+    !context.verifierSyncRequired &&
     throughDeadline(context.payoutDeadline, now)
   ) {
     return { action: "PAY", label: "Prepare payment" };
@@ -105,4 +106,41 @@ export function walletRoleFromFlags(flags: {
   if (flags.isVerifier) return "VERIFIER";
   if (flags.isRecipient) return "RECIPIENT";
   return null;
+}
+
+/** Secondary contract actions; eligibility is checked again on the server. */
+export function secondaryPrepareActions(
+  context: ActionContext & { ownHold: boolean },
+): PrimaryAction[] {
+  if (!context.role || !context.hasLedger ||
+    (context.role === "VERIFIER" && context.verifierSyncRequired)) return [];
+
+  const actions: PrimaryAction[] = [];
+  const now = context.now ?? Date.now();
+  const funded = ["FUNDED", "SUBMITTED", "APPROVED", "REJECTED"].includes(context.status);
+  if (context.role === "SPONSOR" && context.status === "CREATED") {
+    actions.push({ action: "CANCEL", label: "Prepare award cancellation" });
+  }
+  const payout = Date.parse(context.payoutDeadline);
+  if (context.role === "SPONSOR" && funded && Number.isFinite(payout) && now > payout) {
+    actions.push({ action: "REFUND", label: "Prepare expiry refund" });
+  }
+  if (["SPONSOR", "VERIFIER"].includes(context.role) && funded) {
+    actions.push({ action: "SET_HOLD", label: context.ownHold ? "Prepare removal of your hold" : "Prepare your hold" });
+  }
+  if (throughDeadline(context.reviewDeadline, now)) {
+    if (context.role === "VERIFIER") {
+      if (["SUBMITTED", "APPROVED"].includes(context.status)) {
+        actions.push({ action: "REJECT", label: "Prepare rejection" });
+      }
+      if (["REJECTED", "APPROVED"].includes(context.status)) {
+        actions.push({ action: "REOPEN", label: "Prepare reopening" });
+      }
+    }
+    if (context.role === "SPONSOR" && !TERMINAL_STATUSES.has(context.status)) {
+      actions.push({ action: "REPLACE_VERIFIER", label: "Prepare verifier replacement" });
+    }
+  }
+  actions.push({ action: "EXTEND_TTL", label: "Prepare storage lifetime extension" });
+  return actions;
 }

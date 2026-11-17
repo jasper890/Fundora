@@ -162,7 +162,8 @@ export default async function AwardPage({
   const evidenceHistory = await loadEvidenceHistoryForUser(award.id, user);
   const hasEvidenceToSubmit =
     award.latest_evidence_revision != null &&
-    award.latest_evidence_revision > award.evidence_revision;
+    (award.verifier_sync_required ||
+      award.latest_evidence_revision > award.evidence_revision);
   const roleLabel = isSponsor
     ? "SPONSOR"
     : isVerifier
@@ -218,14 +219,27 @@ export default async function AwardPage({
 
       {isRecipient ? (
         <section className="award-section">
-          <h2>Add a new evidence revision</h2>
-          <p className="lead">
-            Upload one to three PDF/JPEG/PNG files (max 5 MiB each), then sign
-            submission from Wallet actions.
-          </p>
-          <Link className="button" href={`/awards/${award.id}/evidence`}>
-            Open evidence upload
-          </Link>
+          {hasEvidenceToSubmit || award.verifier_sync_required ? (
+            <>
+              <h2>{hasEvidenceToSubmit ? "Submit current evidence" : "Evidence synchronization pending"}</h2>
+              <p className="lead">
+                {hasEvidenceToSubmit
+                  ? "Submit the current evidence revision from Wallet actions below before uploading another revision."
+                  : "Wait for the award to finish synchronizing before adding new evidence. Refresh this page to check its status."}
+              </p>
+            </>
+          ) : (
+            <>
+              <h2>Add a new evidence revision</h2>
+              <p className="lead">
+                Upload one to three PDF/JPEG/PNG files (max 5 MiB each), then sign
+                submission from Wallet actions.
+              </p>
+              <Link className="button" href={`/awards/${award.id}/evidence`}>
+                Open evidence upload
+              </Link>
+            </>
+          )}
         </section>
       ) : null}
 

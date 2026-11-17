@@ -9,8 +9,8 @@ export function requireIsolatedTestEnvironment(env: Record<string, string | unde
     env.STELLAR_ALLOW_SUBMISSION !== "0" ||
     !loopback.has(api.hostname) ||
     !loopback.has(db.hostname) ||
-    !api.port || api.port === "54321" ||
-    !db.port || db.port === "54322"
+    api.port !== "55321" ||
+    db.port !== "55322"
   ) {
     throw new Error("E2E requires an isolated local Supabase stack with FakeRpc and submissions disabled. Run npm run test:isolated.");
   }

@@ -14,7 +14,7 @@ export function validateIntent(
   action: string,
   payload: unknown,
 ): void {
-  if (!(action in ROLES) || typeof payload !== "object" || payload === null) {
+  if (!Object.hasOwn(ROLES, action) || typeof payload !== "object" || payload === null) {
     throw new ChainError("INVALID_ACTION", 400);
   }
   const body = payload as Record<string, unknown>;

@@ -17,7 +17,9 @@ describe("isolated E2E environment", () => {
     { STELLAR_ALLOW_SUBMISSION: "1" },
     { NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co" },
     { NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321" },
+    { NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:55323" },
     { DATABASE_URL: "postgres://postgres:postgres@127.0.0.1:54322/postgres" },
+    { DATABASE_URL: "postgres://postgres:postgres@127.0.0.1:55324/postgres" },
     { DATABASE_URL: "postgres://user:pass@example.com:55322/postgres" },
   ])("refuses unsafe test targets %o", (override) => {
     expect(() => requireIsolatedTestEnvironment({ ...isolated, ...override })).toThrow("isolated");

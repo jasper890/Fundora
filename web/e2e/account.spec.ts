@@ -3,6 +3,7 @@ import { DEMO_PASSWORD, loginAs, signOut } from "./helpers";
 
 test("staff provisions an unprivileged account and first login requires a verified password change", async ({ page }) => {
   await loginAs(page, "administrator", "demo-admin");
+  await page.goto("/admin");
   const username = `test-account-${Date.now().toString(36)}`;
   await page.getByLabel("New username").fill(username);
   await page.getByLabel("Temporary password").fill(DEMO_PASSWORD);

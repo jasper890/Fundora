@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "./Button";
 import { ChainPreview } from "./ChainPreview";
@@ -19,6 +20,7 @@ import {
 } from "@/lib/wallet/opSession";
 import {
   primaryPrepareAction,
+  secondaryPrepareActions,
   walletRoleFromFlags,
 } from "@/lib/wallet/primaryAction";
 import { requireAssignedWallet } from "@/lib/wallet/validation";
@@ -84,11 +86,12 @@ export function WalletPanel(props: Props) {
   const [wallet, setWallet] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [polling, setPolling] = useState(false);
+  const [replacementVerifierId, setReplacementVerifierId] = useState("");
   const hydrated = useRef(false);
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const role = walletRoleFromFlags(props);
-  const primary = primaryPrepareAction({
+  const actionContext = {
     role,
     status: props.awardStatus,
     hasLedger: props.hasLedger,
@@ -98,7 +101,10 @@ export function WalletPanel(props: Props) {
     claimDeadline: props.claimDeadline,
     reviewDeadline: props.reviewDeadline,
     payoutDeadline: props.payoutDeadline,
-  });
+  };
+  const primary = primaryPrepareAction(actionContext);
+  const secondary = secondaryPrepareActions({ ...actionContext, ownHold: props.ownHold });
+  const prepareDisabled = busy || Boolean(operationId && !TERMINAL_OP.has(opStatus || ""));
 
   const stopPolling = useCallback(() => {
     if (pollTimer.current) {
@@ -271,6 +277,14 @@ export function WalletPanel(props: Props) {
   }
 
   async function prepare(action: string) {
+    if (prepareDisabled) return;
+    if (
+      action === "REPLACE_VERIFIER" &&
+      !props.replacementVerifierOptions.some((option) => option.id === replacementVerifierId)
+    ) {
+      setMessage("Select an active replacement verifier before preparing.");
+      return;
+    }
     setBusy(true);
     setMessage(null);
     setPreview(null);
@@ -282,7 +296,10 @@ export function WalletPanel(props: Props) {
 
     const version = props.expectedVersion ?? "0";
     const params: Record<string, unknown> =
-      action === "SUBMIT" ? { evidence_id: props.evidenceId } : {};
+      action === "SUBMIT" ? { evidence_id: props.evidenceId }
+        : action === "SET_HOLD" ? { held: !props.ownHold }
+          : action === "REPLACE_VERIFIER" ? { new_verifier_member_id: replacementVerifierId }
+            : {};
     if (action === "SUBMIT" && !props.evidenceId) {
       setBusy(false);
       setMessage("Add an evidence revision before preparing submission.");
@@ -292,48 +309,53 @@ export function WalletPanel(props: Props) {
       action === "DEPLOY" || action === "EXTEND_TTL"
         ? { params: {} }
         : { expected_version: version, params };
-    const response = await fetch(
-      `/api/v1/awards/${props.awardId}/prepare/${action}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Idempotency-Key": crypto.randomUUID(),
+    try {
+      const response = await fetch(
+        `/api/v1/awards/${props.awardId}/prepare/${action}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": crypto.randomUUID(),
+          },
+          body: JSON.stringify(body),
         },
-        body: JSON.stringify(body),
-      },
-    );
-    const data = await response.json().catch(() => ({}));
-    setBusy(false);
-    if (!response.ok) {
-      setMessage(formatApiError(data, "Prepare failed"));
-      return;
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setMessage(formatApiError(data, "Prepare failed"));
+        return;
+      }
+      const id = typeof data.id === "string" ? data.id : null;
+      const xdr =
+        typeof data.unsigned_xdr === "string" ? data.unsigned_xdr : null;
+      setPreview(data.preview ?? data);
+      setOperationId(id);
+      setOpStatus(typeof data.status === "string" ? data.status : "PREPARED");
+      setUnsignedXdr(xdr);
+      if (typeof data.preview?.network_passphrase === "string") {
+        setNetworkPassphrase(data.preview.network_passphrase);
+      }
+      if (id) {
+        writeStoredOp(props.awardId, {
+          operationId: id,
+          unsignedXdr: xdr,
+          networkPassphrase:
+            typeof data.preview?.network_passphrase === "string"
+              ? data.preview.network_passphrase
+              : null,
+        });
+      }
+      setMessage(
+        data.preview?.mode === "live"
+          ? "Live Testnet preview ready. Connect Freighter and sign."
+          : "FakeRpc preview ready. Local confirm available.",
+      );
+    } catch {
+      setMessage("Preparation could not be checked. Refresh the award to find any open operation before trying again.");
+    } finally {
+      setBusy(false);
     }
-    const id = typeof data.id === "string" ? data.id : null;
-    const xdr =
-      typeof data.unsigned_xdr === "string" ? data.unsigned_xdr : null;
-    setPreview(data.preview ?? data);
-    setOperationId(id);
-    setOpStatus(typeof data.status === "string" ? data.status : "PREPARED");
-    setUnsignedXdr(xdr);
-    if (typeof data.preview?.network_passphrase === "string") {
-      setNetworkPassphrase(data.preview.network_passphrase);
-    }
-    if (id) {
-      writeStoredOp(props.awardId, {
-        operationId: id,
-        unsignedXdr: xdr,
-        networkPassphrase:
-          typeof data.preview?.network_passphrase === "string"
-            ? data.preview.network_passphrase
-            : null,
-      });
-    }
-    setMessage(
-      data.preview?.mode === "live"
-        ? "Live Testnet preview ready. Connect Freighter and sign."
-        : "FakeRpc preview ready. Local confirm available.",
-    );
   }
 
   async function signAndSubmit() {
@@ -462,10 +484,7 @@ export function WalletPanel(props: Props) {
           <Button
             type="button"
             data-preview
-            disabled={
-              busy ||
-              Boolean(operationId && !TERMINAL_OP.has(opStatus || ""))
-            }
+            disabled={prepareDisabled}
             onClick={() => prepare(primary.action)}
           >
             {primary.label}
@@ -507,6 +526,50 @@ export function WalletPanel(props: Props) {
           Cancel unsigned
         </Button>
       </div>
+      {secondary.length ? (
+        <fieldset disabled={prepareDisabled}>
+          <legend>Recovery and maintenance</legend>
+          <p className="lead">
+            Each action opens a transaction preview before signing. Review deadline: {formatDeadline(props.reviewDeadline)};
+            payout deadline: {formatDeadline(props.payoutDeadline)} (Asia/Singapore).
+            Holds block approval and payment; expiry refunds remain available.
+          </p>
+          {secondary.some((item) => item.action === "REJECT" || item.action === "REOPEN") ? (
+            <>
+              <p className="lead">Record the matching decision and rationale on the evidence review page before preparing rejection or reopening.</p>
+              <Link className="button quiet" href={`/awards/${props.awardId}/review`}>
+                Open evidence review
+              </Link>
+            </>
+          ) : null}
+          <div className="wallet-actions">
+            {secondary.filter((item) => item.action !== "REPLACE_VERIFIER").map((item) => (
+              <Button key={item.action} type="button" variant="secondary" onClick={() => prepare(item.action)}>
+                {item.label}
+              </Button>
+            ))}
+          </div>
+          {secondary.some((item) => item.action === "REPLACE_VERIFIER") ? (
+            <div className="field">
+              <label htmlFor={`replacement-verifier-${props.awardId}`}>Replacement verifier</label>
+              <select id={`replacement-verifier-${props.awardId}`} value={replacementVerifierId}
+                aria-describedby={`replacement-hint-${props.awardId}`}
+                onChange={(event) => setReplacementVerifierId(event.target.value)}>
+                <option value="">Select an active verifier</option>
+                {props.replacementVerifierOptions.map((option) => (
+                  <option key={option.id} value={option.id}>{option.username} — {option.wallet}</option>
+                ))}
+              </select>
+              <small id={`replacement-hint-${props.awardId}`}>
+                {props.replacementVerifierOptions.length ? "Replacement clears the previous approval and verifier hold after confirmation. Your sponsor hold stays in place." : "No other active verifier is assigned to this program."}
+              </small>
+              <Button type="button" variant="secondary" disabled={!props.replacementVerifierOptions.some((option) => option.id === replacementVerifierId)} onClick={() => prepare("REPLACE_VERIFIER")}>
+                Prepare verifier replacement
+              </Button>
+            </div>
+          ) : null}
+        </fieldset>
+      ) : null}
       {message ? <Notice>{message}</Notice> : null}
       {preview ? <ChainPreview preview={preview} /> : null}
     </div>

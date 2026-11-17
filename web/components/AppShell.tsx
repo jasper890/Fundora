@@ -116,7 +116,7 @@ export function AppShell({ children, username, roleLabel, isStaff }: Props) {
             </div>
           )}
         </aside>
-        <div className="main" id="main">
+        <main className="main" id="main" tabIndex={-1}>
           <header className="topbar">
             <div className="topbar-context">
               <span className="topbar-eyebrow">PROOFPAY · PRIVATE WORKSPACE</span>
@@ -128,7 +128,7 @@ export function AppShell({ children, username, roleLabel, isStaff }: Props) {
           <p className="demo-label">
             Simulated workshop · Testnet XLM has no real monetary value
           </p>
-        </div>
+        </main>
       </div>
     </>
   );

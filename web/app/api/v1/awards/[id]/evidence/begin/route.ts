@@ -106,6 +106,12 @@ export async function POST(
     if (Number(row.evidence_revision) !== parsed.data.expected_revision) {
       return jsonError("STALE_REVISION", 409, "Evidence revision changed. Reload and try again.");
     }
+    if (row.verifier_sync_required) {
+      return jsonError("EVIDENCE_SUBMISSION_REQUIRED", 409, "Submit the current evidence revision from the award before uploading another revision.");
+    }
+    const open = await db`select id from chain_operation where award_id = ${id}
+      and status in ('BUILDING', 'PREPARED', 'SIGNED', 'SUBMITTED', 'UNKNOWN') and reserves_source = true limit 1`;
+    if (open[0]) return jsonError("UNRESOLVED_OPERATION", 409, "Finish or cancel the open transaction before uploading another revision.");
 
     // Keep object keys ≤80 chars to match evidence_file.storage_name.
     const paths = parsed.data.filenames.map(

@@ -49,6 +49,7 @@ test("role doors, program detail and server authorization", async ({ page }) => 
 
 test("staff-only account has no award or evidence authority", async ({ page }) => {
   await loginAs(page, "administrator", "demo-admin");
+  await page.goto("/admin");
   await expect(page.getByRole("heading", { name: "Administrator workspace" })).toBeVisible();
   const unaffiliated = await page.request.get(`/api/v1/evidence/${crypto.randomUUID()}/download`);
   expect(unaffiliated.status()).toBe(404);
