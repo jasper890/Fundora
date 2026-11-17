@@ -1,6 +1,12 @@
 # Freighter smoke resume (after testability hardening)
 
-**Authorization required before sending more Testnet txs.** Local app should meet the hardening exit criteria first.
+**Live code gate status (17 Nov 2026):** `LIVE_SUBMISSION_REVIEW_REQUIRED` was removed after unlock blockers landed on `baacba3`. Live submit still requires local/env flags:
+
+- `STELLAR_USE_FAKE_RPC=0`
+- `STELLAR_ALLOW_SUBMISSION=1`
+- `STELLAR_WASM_HASH=<installed award WASM hash>`
+
+**You still must click Freighter** for connect/sign. The agent cannot complete wallet signing alone.
 
 ## Current smoke award
 
