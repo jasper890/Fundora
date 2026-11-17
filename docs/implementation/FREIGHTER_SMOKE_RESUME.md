@@ -11,8 +11,9 @@
 ## Current smoke award
 
 - Award: `4a79c055-b003-40d0-9d98-e43d19794e9c`
-- Status after hardening kickoff: **FUNDED** (DEPLOY + FUND confirmed)
+- Status as of Phase 11 start (17 Nov 2026 local DB): still **FUNDED** (DEPLOY + FUND confirmed earlier)
 - Contract: `CC5UMIFT7BZ65CO72KACKO7NIBJTYWO552OPSLUXDPLUINGIFQVJOFSP`
+- Local `.env.local` already has live flags (`STELLAR_USE_FAKE_RPC=0`, `STELLAR_ALLOW_SUBMISSION=1`, WASM hash set). Phase 11 authorized; Freighter clicks still required.
 
 ## Remaining path
 

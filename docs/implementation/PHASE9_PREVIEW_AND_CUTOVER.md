@@ -18,10 +18,6 @@
 2. Rotate the Supabase DB password if the URI was shared in chat (update Vercel `DATABASE_URL` after).
 3. Freighter live smoke still needs you at the keyboard — see [FREIGHTER_SMOKE_RESUME.md](FREIGHTER_SMOKE_RESUME.md).
 
-## Phase 10 — Django cutover (not executed)
+## Phase 10 / 11
 
-Do **not** cut over until Phase 9 preview smoke is accepted. Django remains the read-only oracle until then.
-
-## Phase 11
-
-Formal A1–A10 Testnet rehearsal remains gated after Freighter path evidence exists. Outside usability / demo video are out of scope for this pass.
+Executed under separate authorization — see [PHASE10_CUTOVER_AND_PHASE11.md](PHASE10_CUTOVER_AND_PHASE11.md).

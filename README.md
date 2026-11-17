@@ -1,8 +1,8 @@
 # ProofPay
 
-Documentation for a proposed Stellar Testnet training-stipend prototype. A sponsor deposits funds, a recipient submits private evidence, a verifier approves it, and the sponsor separately authorizes payment. Blockchain records approvals and transfers; a human still checks the underlying completion record.
+A Stellar Testnet training-stipend prototype. A sponsor deposits funds, a recipient submits private evidence, a verifier approves it, and the sponsor separately authorizes payment. Blockchain records approvals and transfers; a human still checks the underlying completion record.
 
-**Status: the active app is the Next.js/Supabase rebuild under `web/`; Django remains a read-only comparison oracle pending cutover. Local security and testability hardening is in progress, 17 November 2026.** Live submission is temporarily blocked while transaction preparation, binding, reconciliation and independent verification are completed. See the [current continuation ledger](docs/implementation/LOCAL_HARDENING_RESUME.md) for exact checks and remaining work, and the [rebuild handoff](docs/implementation/CODEX_HANDOFF.md) for earlier DEPLOY/FUND smoke evidence. Hosted preview, cutover, live acceptance and outside usability remain open; local tests do not satisfy those gates.
+**Status (17 November 2026):** the active app is Next.js + Supabase under `web/`. Phase 10 cutover removed Django from the product path (rollback tag `django-final`; archived fixtures in `oracle/`). Hosted preview: https://proofpay-preview.vercel.app (FakeRpc). Phase 11 Freighter/Testnet A1–A10 rehearsal is in progress and still needs wallet signing at the keyboard.
 
 ## Start here
 
@@ -17,28 +17,31 @@ Documentation for a proposed Stellar Testnet training-stipend prototype. A spons
 | [Repository validation](ProofPay_Repository_Validation.md) | Reviewed snapshots, findings, licenses, and permitted reuse |
 | [Clickable source map](docs/REPOSITORY_SOURCE_MAP.md) | Direct links to specific upstream files and their intended use |
 | [Verification matrix](docs/VERIFICATION.md) | Requirements mapped to future checks and evidence |
-| [Operations guide](docs/OPERATIONS.md) | Local setup boundary and proposed recovery procedures |
+| [Operations guide](docs/OPERATIONS.md) | Local setup and recovery procedures |
 | [Synthetic demo record](docs/DEMO_RECORD.md) | Local browser setup, synthetic walkthrough and open acceptance gates |
 | [UI design tooling](docs/UI_DESIGN_TOOLING.md) | DaisyUI skill, project Figma MCP, and Apple design-resource boundaries |
 | [Agent handoff and award checklist](ProofPay_Agent_Handoff_and_InstaAward_Checklist.md) | Execution gates, remaining unknowns, and InstaAward preparation |
 | [Decision register](docs/DECISIONS.md) | Accepted design choices and decisions still needed |
+| [Phase 10/11 cutover notes](docs/implementation/PHASE10_CUTOVER_AND_PHASE11.md) | Cutover record and Freighter rehearsal checklist |
 
 Read the product, repository report, system plan, and agent checklist in full before coding. Supporting docs explain those sources; they do not silently replace their requirements.
 
+## Local run
+
+1. Docker Desktop, Node 22+.
+2. `npx supabase start` then copy keys into `web/.env.local` from `web/.env.example`.
+3. `npm --prefix web install && npm --prefix web run dev` → http://127.0.0.1:3000
+4. Contract tests: `cargo test --manifest-path contracts/award/Cargo.toml --locked`
+5. App checks from `web/`: `npm run typecheck`, `npm test`, `npm run test:isolated` when needed.
+
 ## Giving this to an agent
 
-[OpenSpec workflow](docs/OPENSPEC.md) explains the installed Codex/Claude support and the derived Task 1 and Task 6 change records. Include `openspec/`, `.agents/` and `.claude/` when transferring this workflow. The existing six-task plan remains authoritative.
-
-Copy this root's current Markdown files and the `docs/` directory together into the GitHub repository. Include root `AGENTS.md` for Codex and `CLAUDE.md` for Claude; both point to the same standard. Preserve relative paths. Do not copy research clone caches, local credentials, evidence, or generated archives into source control.
+[OpenSpec workflow](docs/OPENSPEC.md) explains the installed Codex/Claude support. Include `openspec/`, `.agents/` and `.claude/` when transferring this workflow. The existing six-task plan remains authoritative.
 
 Use this prompt:
 
 > Read AGENTS.md and its linked authoritative documents. Explain the selected scope and inspect the actual implementation environment. For this request, work only on the task I specify. Use the six-task implementation plan, smallest complete changes, and its required checks. Record passed, failed, and not-run results. Ask about genuine blockers; decide routine implementation details within scope. Keep private evidence and keys out of source and logs. Deployment, paid services, Mainnet, grant submission, and outreach require separate explicit authorization.
 
-The user authorized the six-task implementation on 16 November 2026. Task 6 local browser coverage is tracked in [OpenSpec](docs/OPENSPEC.md); outside usability sessions and network-backed acceptance remain open. See [operations](docs/OPERATIONS.md) and [verification](docs/VERIFICATION.md) for actual state and blockers. Deployment and paid or public activity retain their separate authorization gates. If copied into another code repository, inspect and preserve that repository's code and more specific instructions before choosing the build location.
-
 ## Historical resources
 
-The original PDF and both `ServicePass_*.md` files are background only. Their repair/warranty project and repo choices are superseded by the ProofPay scope. The old `ProofPay_Agent_Package_2026-11-16.zip` predates this expanded documentation; do not use it as the current package. No public source-code license has been selected for original ProofPay work yet.
-
-For documentation changes, use the [change template](docs/templates/CHANGE.md). For implementation, execute the existing six tasks; do not create a second competing plan.
+The original PDF and both `ServicePass_*.md` files are background only. Django runtime lived in-tree until tag `django-final`. No public source-code license has been selected for original ProofPay work yet.

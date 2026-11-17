@@ -1,6 +1,6 @@
 # Verification and completion evidence
 
-Status: Task 1 local baseline evidence recorded; Task 2 contract implementation and local release verification are complete; Task 3 private evidence/review is implemented locally; live Testnet, archival recovery, chain integration, and acceptance criteria A1-A10 remain incomplete. Historical upstream example results in the [repository report](../ProofPay_Repository_Validation.md) are not ProofPay test results. The [system plan](../ProofPay_System_and_Implementation_Plan.md) remains authoritative.
+Status: Next.js/Supabase is the product path after Phase 10 cutover (`django-final`). Preview is live. Phase 11 A1–A10 live Testnet rehearsal is authorized but Freighter SUBMIT→APPROVE→PAY remains NOT RUN (operator wallet required). See [PHASE10_CUTOVER_AND_PHASE11.md](implementation/PHASE10_CUTOVER_AND_PHASE11.md). Historical upstream example results in the [repository report](../ProofPay_Repository_Validation.md) are not ProofPay test results. The [system plan](../ProofPay_System_and_Implementation_Plan.md) remains authoritative.
 
 ## Task 1 implementation record — 16 November 2026
 

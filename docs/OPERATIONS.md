@@ -1,6 +1,6 @@
 # Operations notes
 
-Status: updated 17 November 2026 for the Next.js + Supabase rebuild. Deploy and Testnet submission still need separate authorization.
+Status: updated 17 November 2026 after Phase 10 Django cutover. Preview is live; Freighter/Testnet submission for Phase 11 needs the operator at the wallet.
 
 ## Local development (no cloud required)
 
@@ -10,20 +10,30 @@ Status: updated 17 November 2026 for the Next.js + Supabase rebuild. Deploy and 
 4. `npm --prefix web install`
 5. `npm --prefix web run dev` → http://127.0.0.1:3000
 6. Contract tests: `cargo test --manifest-path contracts/award/Cargo.toml --locked`
-7. Oracle (until cutover): `uv run python manage.py test proofpay.tests --noinput` with the existing Django/Postgres compose if needed for golden fixtures.
+7. App unit tests: `npm --prefix web test`
 
-## Free-tier hosted caveats (when authorized)
+## Hosted preview
 
-- Supabase Free pauses after **7 idle days**; Free has **no automatic backups**. Dump before risky changes: `npx supabase db dump`.
+- URL: https://proofpay-preview.vercel.app
+- Supabase project: `proofpay-preview` (`vttmpwgtnfpowgwdwcwz`)
+- Preview env keeps `STELLAR_USE_FAKE_RPC=1` and `STELLAR_ALLOW_SUBMISSION=0`
+- Free-tier notes: Supabase Free pauses after **7 idle days** and has **no automatic backups**. Dump before risky changes: `npx supabase db dump`.
 - Vercel Hobby is **personal / non-commercial** (POC/MVP only).
-- Evidence uploads bypass Vercel function bodies via **signed Storage URLs** (4.5 MB function limit).
-- Reconciliation: Supabase `pg_cron` / `pg_net` every 5 minutes + on-demand refresh; Hobby cron is daily backstop only.
-- `STELLAR_ALLOW_SUBMISSION` stays `0` until explicitly authorized.
+
+## Live Testnet (Phase 11)
+
+Local flags only when authorized:
+
+- `STELLAR_USE_FAKE_RPC=0`
+- `STELLAR_ALLOW_SUBMISSION=1`
+- `STELLAR_WASM_HASH=<installed award WASM hash>`
+
+Freighter must sign recipient SUBMIT, verifier APPROVE, and sponsor PAY. See [FREIGHTER_SMOKE_RESUME.md](implementation/FREIGHTER_SMOKE_RESUME.md) and [PHASE10_CUTOVER_AND_PHASE11.md](implementation/PHASE10_CUTOVER_AND_PHASE11.md).
 
 ## Secrets
 
 Never commit `.env.local`, service-role keys, wallet secrets, or personal evidence. Browser code receives no server secrets.
 
-## Legacy Django ops
+## Django rollback
 
-Docker Compose Postgres on `127.0.0.1:55432` and Django `runserver` remain available only to regenerate oracle fixtures. They are not the production-shaped runtime after ADR-0001.
+Product Django packages were removed in Phase 10. Full restore: `git checkout django-final`. Archived golden test sources: `oracle/django-tests/`.
