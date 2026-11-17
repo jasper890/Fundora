@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Fundora app icon">
+  <title>Fundora</title>
+  <rect width="128" height="128" rx="28" fill="#0B3D3A"/>
+  <path fill="#FFFFFF" d="M34 28h52c3.3 0 6 2.7 6 6v5.2c0 2.2-1.8 4-4 4H50v16h28c2.8 0 5 2.2 5 5v4.8c0 2.8-2.2 5-5 5H50v28c0 3.3-2.7 6-6 6h-4c-3.3 0-6-2.7-6-6V34c0-3.3 2.7-6 6-6z"/>
+  <path fill="#F26B1F" d="M56 44h28L96 60 84 76H56l11-16L56 44z"/>
+</svg>

@@ -1,5 +1,7 @@
 # Agent entry instructions
 
+**Public brand:** Fundora (tagline *Open. Verify. Transact.*). Logo assets live in [docs/brand/](docs/brand/). The running UI and authority filenames may still say ProofPay until a separate rename pass; product/contract rules are unchanged.
+
 Read [README.md](README.md), then [docs/ENGINEERING_STANDARD.md](docs/ENGINEERING_STANDARD.md). Read all four authoritative ProofPay handoff files linked there before changing product behavior. Read the relevant supporting design and verification sections for the requested task.
 
 Use [the OpenSpec workflow](docs/OPENSPEC.md) to track the existing six tasks. OpenSpec artifacts are derived from the authoritative documents and do not override them. The user authorized implementation on 16 November 2026.
