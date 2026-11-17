@@ -3,7 +3,9 @@ import type { OperationStatus, Role } from "../types";
 
 export const NETWORK_PASSPHRASE = "Test SDF Network ; September 2015";
 export const DEFAULT_RPC_URL = "https://soroban-testnet.stellar.org";
-export const FEE_CEILING = 10_000_000;
+// Testnet Soroban create/deploy resource fees commonly exceed classic 10M stroops.
+// Cap remains env-tunable via STELLAR_MAX_FEE; this is the hard upper bound.
+export const FEE_CEILING = 100_000_000;
 
 export const ACTIVE: OperationStatus[] = [
   "BUILDING",
