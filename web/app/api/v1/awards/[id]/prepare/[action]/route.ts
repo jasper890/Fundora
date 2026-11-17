@@ -112,6 +112,35 @@ export async function POST(
       ROLES[resolvedAction] as Role[],
     );
 
+    // Django parity: expire unsigned preparations for this signer before reserving again.
+    await db`
+      update chain_operation
+      set status = 'ABANDONED',
+          error_code = 'UNSIGNED_EXPIRED',
+          last_checked_at = now()
+      where signer = ${actor.public_wallet}
+        and status in ('BUILDING', 'PREPARED')
+        and (signed_hash is null or signed_hash = '')
+        and (signed_xdr is null or signed_xdr = '')
+        and expires_at <= now()
+    `;
+
+    const blocking = (await db`
+      select id, status, action
+      from chain_operation
+      where signer = ${actor.public_wallet}
+        and status in ('BUILDING', 'PREPARED', 'SIGNED', 'SUBMITTED', 'UNKNOWN')
+        and reserves_source = true
+      limit 1
+    `) as unknown as { id: string; status: string; action: string }[];
+    if (blocking[0]) {
+      return jsonError(
+        "UNRESOLVED_OPERATION",
+        409,
+        `Finish or cancel the open ${blocking[0].action} (${blocking[0].status}) before preparing another action.`,
+      );
+    }
+
     const snapshot = {
       status: (row.status as AwardStatus) || "CREATED",
       version: Number(row.version ?? 0),
@@ -239,6 +268,14 @@ export async function POST(
     }
     if (error instanceof ChainError) {
       return jsonError(error.code, error.status);
+    }
+    const pgCode = (error as { code?: string }).code;
+    if (pgCode === "23505") {
+      return jsonError(
+        "UNRESOLVED_OPERATION",
+        409,
+        "An open chain operation already reserves this signer. Cancel unsigned or wait for confirmation.",
+      );
     }
     console.error(error);
     return jsonError("RPC_UNAVAILABLE", 503);
