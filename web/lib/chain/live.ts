@@ -82,8 +82,9 @@ export class LiveRpc implements RpcGateway {
     return token;
   }
 
-  async readAward(contractId: string | null): Promise<AwardSnapshot> {
+  async readAward(contractId: string | null, manifest?: Record<string, unknown> | null): Promise<AwardSnapshot> {
     if (!contractId || !isContractId(contractId)) throw new ChainError("DEPLOYMENT_UNAVAILABLE", 409);
+    if (!manifest || !Object.keys(manifest).length) throw new ChainError("AWARD_IDENTITY_MISMATCH", 503);
     const token = await this.verifyNetwork();
     const response = await this.server.getLedgerEntries(new Contract(contractId).getFootprint());
     const data = response.entries[0]?.val;
@@ -98,6 +99,14 @@ export class LiveRpc implements RpcGateway {
     const state = scValToNative(entry.val) as Record<string, unknown>;
     if (!state || typeof state !== "object") throw new ChainError("STATE_UNAVAILABLE", 503);
     if (String(state.amount) !== "200000000" || state.token !== token) throw new ChainError("WRONG_TOKEN");
+    for (const field of ["sponsor", "recipient", "token", "amount", "claim_deadline", "review_deadline", "payout_deadline"]) {
+      if (manifest[field] == null || String(state[field]) !== String(manifest[field])) throw new ChainError("AWARD_IDENTITY_MISMATCH", 503);
+    }
+    for (const field of ["award_id", "policy_hash"]) {
+      if (typeof manifest[field] !== "string" || bytesHex(state[field]) !== manifest[field]) throw new ChainError("AWARD_IDENTITY_MISMATCH", 503);
+    }
+    if (typeof state.sponsor_hold !== "boolean" || typeof state.verifier_hold !== "boolean" ||
+      typeof state.verifier !== "string" || !StrKey.isValidEd25519PublicKey(state.verifier)) throw new ChainError("STATE_UNAVAILABLE", 503);
     const latest = await this.server.getLatestLedger();
     const statusValue = Array.isArray(state.status) ? state.status[0] : state.status;
     const status = String(statusValue).toUpperCase() as AwardSnapshot["status"];

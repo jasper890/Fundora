@@ -13,7 +13,7 @@ import { POST } from "@/app/api/v1/awards/[id]/evidence/finalize/route";
 
 const award = "11111111-1111-4111-8111-111111111111";
 const reservationId = "22222222-2222-4222-8222-222222222222";
-const reservation = { id: reservationId, expected_revision: 0, explanation: "Synthetic completion", source_ref: "synthetic-source", object_paths: ["test-upload.bin"] };
+const reservation = { id: reservationId, expected_revision: 0, expires_at: new Date(Date.now() + 60_000), explanation: "Synthetic completion", source_ref: "synthetic-source", object_paths: ["test-upload.bin"] };
 function post(extra: Record<string, unknown> = {}) {
   return POST(new Request(`https://proofpay.test/api/v1/awards/${award}/evidence/finalize`, {
     method: "POST", headers: { Origin: "https://proofpay.test", "Content-Type": "application/json" },
@@ -56,6 +56,16 @@ describe("evidence finalization trust boundary", () => {
     mocks.tx.mockResolvedValueOnce([]);
     expect((await post()).status).toBe(409);
     expect(mocks.remove).not.toHaveBeenCalled();
+  });
+  it("rejects an expired reservation before downloading private objects", async () => {
+    mocks.query.mockReset().mockResolvedValueOnce([{ ...reservation, expires_at: new Date(0) }]).mockResolvedValue([]);
+    expect((await post()).status).toBe(409);
+    expect(mocks.download).not.toHaveBeenCalled();
+  });
+  it("rechecks expiration after downloading and before writing a revision", async () => {
+    mocks.tx.mockResolvedValueOnce([{ ...reservation, expires_at: new Date(0) }]);
+    expect((await post()).status).toBe(409);
+    expect(mocks.tx).toHaveBeenCalledTimes(1);
   });
   it("stores a revision only after verifying actual bytes", async () => {
     mocks.tx.mockResolvedValueOnce([reservation]).mockResolvedValueOnce([{

@@ -1,5 +1,7 @@
 # ProofPay orchestration checkpoint
 
+**Continuation:** The user resumed this work on 17 November 2026. See [LOCAL_HARDENING_RESUME.md](LOCAL_HARDENING_RESUME.md) for the new branch, current progress and later evidence. The pause and results below describe the historical `4b83612` checkpoint.
+
 Workspace: `Proofpay-next`, branch `feature/testability-hardening`, starting commit `0d005f8`.
 The accepted Next.js/Supabase ADR owns runtime architecture; the original six tasks and A1–A10 still own product and contract behavior. This ledger tracks the existing rebuild phases, not a replacement roadmap.
 

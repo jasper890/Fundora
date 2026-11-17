@@ -28,6 +28,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (!reservation) return jsonError("NOT_FOUND", 404);
   const paths = reservation.object_paths as string[];
   try {
+    if (!(new Date(reservation.expires_at).getTime() > Date.now())) throw new Error("RESERVATION_EXPIRED");
     if (paths.length !== parsed.data.filenames.length || !paths.length || paths.length > 3) throw new Error("INVALID_BODY");
     // Download and validate before taking row locks; object uploads cannot upsert.
     const files: { path: string; filename: string; contentType: string; size: number; digest: string }[] = [];
@@ -42,6 +43,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const result = await db.begin(async (tx) => {
       const [current] = await tx`select * from evidence_upload_reservation where id = ${reservation.id} and finalized_at is null for update`;
       if (!current) throw new Error("ALREADY_FINALIZED");
+      if (!(new Date(current.expires_at).getTime() > Date.now())) throw new Error("RESERVATION_EXPIRED");
       const [award] = await tx`
         select a.*, p.claim_deadline, m.user_id as recipient_user, m.active as recipient_active
         from award a join program p on p.id = a.program_id join program_member m on m.id = a.recipient_member_id
@@ -70,7 +72,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (abandoned[0]) await deleteEvidenceObjects(abandoned[0].object_paths as string[]).catch(() => undefined);
     const code = error instanceof Error ? error.message : "STORAGE_UNAVAILABLE";
     if (code === "NOT_FOUND") return jsonError(code, 404);
-    if (["STALE_REVISION", "INVALID_STATE", "ALREADY_FINALIZED"].includes(code)) return jsonError(code, 409, "This award changed. Refresh before uploading a new revision.");
+    if (["STALE_REVISION", "INVALID_STATE", "ALREADY_FINALIZED", "RESERVATION_EXPIRED"].includes(code)) return jsonError(code, 409, "This award or upload reservation changed. Refresh before uploading a new revision.");
     if (code === "INVALID_BODY") return jsonError(code, 400);
     if (code === "INVALID_FILE") return jsonError(code, 400, EVIDENCE_TYPE_ERROR);
     return jsonError("STORAGE_UNAVAILABLE", 503, "The uploaded evidence could not be verified. No revision was saved.");
