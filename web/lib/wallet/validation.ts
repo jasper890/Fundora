@@ -1,4 +1,6 @@
 /** Byte-compatible port of static_src/wallet_validation.ts */
+import { StrKey } from "@stellar/stellar-sdk";
+
 export function requireAssignedWallet(
   actualAddress: string,
   expectedAddress: string,
@@ -9,4 +11,12 @@ export function requireAssignedWallet(
     throw new Error("Select the assigned wallet account before signing.");
   if (actualNetwork !== expectedNetwork)
     throw new Error("Switch your wallet to Stellar Testnet before signing.");
+}
+
+export function isValidPublicKey(value: string): boolean {
+  try {
+    return StrKey.isValidEd25519PublicKey(value);
+  } catch {
+    return false;
+  }
 }

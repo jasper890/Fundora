@@ -27,7 +27,7 @@ export interface RpcGateway {
   prepare(args: {
     action: string;
     signer: string;
-    contractId: string | null;
+    contractId?: string | null;
     snapshot: AwardSnapshot;
   }): Promise<PreparedEnvelope>;
   submit(signedXdr: string): Promise<{ hash: string }>;
@@ -48,6 +48,8 @@ export class FakeRpc implements RpcGateway {
   async prepare(args: {
     action: string;
     signer: string;
+    contractId?: string | null;
+    snapshot?: AwardSnapshot;
   }): Promise<PreparedEnvelope> {
     if (this.failPrepare) throw new Error("RPC down");
     const xdr = `FAKE-${args.action}-${args.signer}`;

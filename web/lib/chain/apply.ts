@@ -1,0 +1,141 @@
+/** Local award transitions after FakeRpc confirms an operation. */
+
+// postgres.js transaction client — keep loose to avoid TransactionSql vs Sql mismatch.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Tx = any;
+
+export async function applyConfirmedAction(
+  tx: Tx,
+  args: {
+    awardId: string;
+    action: string;
+    ledger: number;
+    intent: Record<string, unknown>;
+  },
+) {
+  const action = args.action.toUpperCase();
+  if (action === "DEPLOY") {
+    await tx`
+      update award
+      set last_confirmed_ledger = ${args.ledger},
+          contract_id = coalesce(nullif(contract_id, ''), ${`C${args.awardId.replace(/-/g, "").slice(0, 55)}`}),
+          network_id = 'TESTNET',
+          version = version + 1
+      where id = ${args.awardId}
+    `;
+    return;
+  }
+  if (action === "FUND") {
+    await tx`
+      update award
+      set status = 'FUNDED',
+          last_confirmed_ledger = ${args.ledger},
+          version = version + 1
+      where id = ${args.awardId}
+        and status = 'CREATED'
+    `;
+    return;
+  }
+  if (action === "SUBMIT") {
+    await tx`
+      update award
+      set status = 'SUBMITTED',
+          last_confirmed_ledger = ${args.ledger},
+          version = version + 1,
+          verifier_sync_required = false
+      where id = ${args.awardId}
+        and status in ('FUNDED', 'SUBMITTED')
+    `;
+    return;
+  }
+  if (action === "APPROVE") {
+    await tx`
+      update award
+      set status = 'APPROVED',
+          last_confirmed_ledger = ${args.ledger},
+          version = version + 1
+      where id = ${args.awardId}
+        and status = 'SUBMITTED'
+    `;
+    return;
+  }
+  if (action === "REJECT") {
+    await tx`
+      update award
+      set status = 'REJECTED',
+          last_confirmed_ledger = ${args.ledger},
+          version = version + 1
+      where id = ${args.awardId}
+        and status = 'SUBMITTED'
+    `;
+    return;
+  }
+  if (action === "PAY") {
+    await tx`
+      update award
+      set status = 'PAID',
+          settled_at = now(),
+          last_confirmed_ledger = ${args.ledger},
+          version = version + 1
+      where id = ${args.awardId}
+        and status = 'APPROVED'
+    `;
+    return;
+  }
+  if (action === "CANCEL") {
+    await tx`
+      update award
+      set status = 'CANCELLED',
+          settled_at = now(),
+          last_confirmed_ledger = ${args.ledger},
+          version = version + 1
+      where id = ${args.awardId}
+        and status in ('CREATED', 'FUNDED')
+    `;
+    return;
+  }
+  if (action === "REFUND") {
+    await tx`
+      update award
+      set status = 'REFUNDED',
+          settled_at = now(),
+          last_confirmed_ledger = ${args.ledger},
+          version = version + 1
+      where id = ${args.awardId}
+        and status in ('FUNDED', 'SUBMITTED', 'APPROVED', 'REJECTED')
+    `;
+    return;
+  }
+  if (action === "REOPEN") {
+    await tx`
+      update award
+      set status = 'SUBMITTED',
+          last_confirmed_ledger = ${args.ledger},
+          version = version + 1
+      where id = ${args.awardId}
+        and status in ('APPROVED', 'REJECTED')
+    `;
+    return;
+  }
+  if (action === "SET_HOLD") {
+    const payload = args.intent?.payload as
+      | { params?: { held?: boolean } }
+      | undefined;
+    const held = Boolean(payload?.params?.held);
+    await tx`
+      update award
+      set sponsor_hold = ${held},
+          last_confirmed_ledger = ${args.ledger},
+          version = version + 1
+      where id = ${args.awardId}
+    `;
+    return;
+  }
+  // EXTEND_TTL / REPLACE_VERIFIER: ledger bump only for local FakeRpc.
+  await tx`
+    update award
+    set last_confirmed_ledger = ${args.ledger},
+        version = version + 1
+    where id = ${args.awardId}
+  `;
+}

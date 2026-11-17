@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SignOutButton } from "./SignOutButton";
 import { SkipLink } from "./SkipLink";
 import { TestnetBanner } from "./TestnetBanner";
 
@@ -29,6 +30,9 @@ export function AppShell({ children, username, roleLabel }: Props) {
             <div style={{ marginTop: "2rem", fontSize: "0.8rem" }}>
               {username && <div>{username}</div>}
               {roleLabel && <div>{roleLabel}</div>}
+              <div style={{ marginTop: "0.75rem" }}>
+                <SignOutButton />
+              </div>
             </div>
           )}
         </aside>
