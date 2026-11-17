@@ -27,10 +27,20 @@ export async function POST(request: Request) {
   if (!user) return jsonError("UNAUTHENTICATED", 401);
   const profile = await loadAppUserByAuthId(user.id, { allowMustChangePassword: true });
   if (!profile) return jsonError("UNAUTHENTICATED", 401);
+  if (!user.email) {
+    return jsonError("PASSWORD_REJECTED", 400, "The current password is incorrect or the new password was rejected.");
+  }
+
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: parsed.data.current_password,
+  });
+  if (verifyError) {
+    return jsonError("PASSWORD_REJECTED", 400, "The current password is incorrect or the new password was rejected.");
+  }
 
   const { error } = await supabase.auth.updateUser({
     password: parsed.data.new_password,
-    current_password: parsed.data.current_password,
   });
   if (error) {
     return jsonError("PASSWORD_REJECTED", 400, "The current password is incorrect or the new password was rejected.");

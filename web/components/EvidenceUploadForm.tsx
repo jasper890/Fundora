@@ -49,7 +49,10 @@ export function EvidenceUploadForm({ awardId, expectedRevision = 0 }: { awardId:
       const saved = await finalize.json().catch(() => ({}));
       if (!finalize.ok) throw new Error(saved.error?.message || saved.error || "Could not verify uploaded evidence.");
       setMessage(`Evidence revision ${saved.revision} saved. Return to the award to prepare submission.`);
-      router.refresh();
+      // Navigate to the award so evidence history/download links are visible.
+      // Refreshing this page would replace the form with the sync-required gate
+      // and hide the success confirmation.
+      router.push(`/awards/${awardId}`);
     } catch (error) {
       if (reservationId) await fetch(`/api/v1/awards/${awardId}/evidence/begin`, {
         method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reservation_id: reservationId }),

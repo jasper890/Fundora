@@ -60,7 +60,9 @@ export async function fakeRpcPrepareAndConfirm(
   await expect(page.getByText(/FakeRpc preview ready/i)).toBeVisible({
     timeout: 30_000,
   });
-  await page.getByRole("button", { name: "Sign and submit" }).click();
+  const submit = page.getByRole("button", { name: "Sign and submit" });
+  await expect(submit).toBeEnabled({ timeout: 30_000 });
+  await submit.click();
   await expect(
     page.getByText(/Confirmed locally|Confirmed \(/i),
   ).toBeVisible({ timeout: 30_000 });

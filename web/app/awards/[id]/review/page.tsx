@@ -29,8 +29,8 @@ export default async function ReviewPage({
       from award a
       join program_member vm on vm.id = a.verifier_member_id
       left join lateral (
-        select id from evidence_version where purged_at is null
-        where award_id = a.id
+        select id from evidence_version
+        where purged_at is null and award_id = a.id
         order by revision desc
         limit 1
       ) ev on true

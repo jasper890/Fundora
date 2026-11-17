@@ -69,6 +69,15 @@ describe("presentation port", () => {
     expect(statusLines(a)).toContain("Not a bank receipt.");
   });
 
+  it("keeps an unsigned correction actionable after an earlier confirmed submission", () => {
+    const a = award({ status: "SUBMITTED", verifier_sync_required: true,
+      evidence_revision: 2, evidence_digest: "new-digest",
+      latest_evidence: { revision: 2, digest: "new-digest" } });
+    expect(statusLines(a)).toContain("Evidence saved. Submission not yet signed.");
+    expect(nextStep(a, recipient)).toBe("Review and sign submission.");
+    expect(userActsNow(a, recipient)).toBe(true);
+  });
+
   it("returns role home copy", () => {
     expect(homeCopy("SPONSOR").page_title).toBe("Sponsor workspace");
     expect(homeCopy(null).empty_register).toContain("No awards");

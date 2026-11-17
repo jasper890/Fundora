@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
+  signInWithPassword: vi.fn(),
   updateUser: vi.fn(),
   loadProfile: vi.fn(),
   clearFlag: vi.fn(),
@@ -11,6 +12,7 @@ vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: vi.fn(async () => ({
     auth: {
       getUser: mocks.getUser,
+      signInWithPassword: mocks.signInWithPassword,
       updateUser: mocks.updateUser,
     },
   })),
@@ -48,14 +50,16 @@ function post(body: unknown, origin = "https://proofpay.test") {
 describe("password change route", () => {
   beforeEach(() => {
     mocks.getUser.mockReset();
+    mocks.signInWithPassword.mockReset();
     mocks.updateUser.mockReset();
     mocks.loadProfile.mockReset();
     mocks.clearFlag.mockReset();
-    mocks.getUser.mockResolvedValue({ data: { user: { id: "auth-user" } } });
+    mocks.getUser.mockResolvedValue({ data: { user: { id: "auth-user", email: "auth-user@proofpay.test" } } });
     mocks.loadProfile.mockResolvedValue({
       id: "auth-user", username: "reviewer", is_staff: false, is_active: true,
       must_change_password: true,
     });
+    mocks.signInWithPassword.mockResolvedValue({ data: { user: { id: "auth-user" } }, error: null });
     mocks.updateUser.mockResolvedValue({ data: { user: { id: "auth-user" } }, error: null });
   });
 
@@ -86,9 +90,12 @@ describe("password change route", () => {
   it("checks the current password with Supabase and never returns credentials", async () => {
     const response = await post(validBody);
     expect(response.status).toBe(200);
+    expect(mocks.signInWithPassword).toHaveBeenCalledWith({
+      email: "auth-user@proofpay.test",
+      password: validBody.current_password,
+    });
     expect(mocks.updateUser).toHaveBeenCalledWith({
       password: validBody.new_password,
-      current_password: validBody.current_password,
     });
     expect(mocks.clearFlag).toHaveBeenCalledOnce();
     const body = await response.text();
@@ -122,5 +129,15 @@ describe("password change route", () => {
     const response = await post(validBody);
     expect(response.status).toBe(400);
     expect(await response.text()).not.toContain("sensitive provider detail");
+  });
+
+  it("rejects when the current password check fails", async () => {
+    mocks.signInWithPassword.mockResolvedValueOnce({
+      data: { user: null },
+      error: { message: "Invalid login credentials" },
+    });
+    const response = await post(validBody);
+    expect(response.status).toBe(400);
+    expect(mocks.updateUser).not.toHaveBeenCalled();
   });
 });

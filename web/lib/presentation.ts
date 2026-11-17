@@ -41,6 +41,7 @@ const RANK: Partial<Record<AwardStatus, number>> = {
 function hasLocalUnsignedEvidence(award: AwardView): boolean {
   const latest = award.latest_evidence;
   if (latest === null) return false;
+  if (award.verifier_sync_required) return true;
   if (!award.last_confirmed_ledger) return true;
   return !(
     award.evidence_revision === latest.revision &&
@@ -78,7 +79,7 @@ export function statusLines(award: AwardView): string[] {
   }
 
   const lines: string[] = [];
-  if (award.status === "FUNDED" && hasLocalUnsignedEvidence(award)) {
+  if (["FUNDED", "SUBMITTED"].includes(award.status) && hasLocalUnsignedEvidence(award)) {
     lines.push("Evidence saved. Submission not yet signed.");
   } else {
     lines.push(CONFIRMED_PRIMARY[award.status] ?? award.status);
@@ -126,11 +127,12 @@ export function nextStep(award: AwardView, user: AppUser): string {
     return "Waiting for the sponsor to fund this award.";
   }
 
+  if (["FUNDED", "SUBMITTED"].includes(status) && hasLocalUnsignedEvidence(award)) {
+    if (role === "RECIPIENT") return "Review and sign submission.";
+    return "Waiting for the recipient to sign submission.";
+  }
+
   if (status === "FUNDED") {
-    if (hasLocalUnsignedEvidence(award)) {
-      if (role === "RECIPIENT") return "Review and sign submission.";
-      return "Waiting for the recipient to sign submission.";
-    }
     if (role === "RECIPIENT") return "Add completion evidence.";
     return "Waiting for the recipient to add completion evidence.";
   }

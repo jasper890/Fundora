@@ -359,7 +359,7 @@ export async function POST(
     `) as unknown as AwardRow[];
     const row = rows[0];
     if (!row) return jsonError("NOT_FOUND", 404);
-    getActor(row, appUser, resolvedAction);
+    const initialActor = getActor(row, appUser, resolvedAction);
     validateLocalCommitment(resolvedAction, row);
 
     const existingRows = (await db`
@@ -404,6 +404,16 @@ export async function POST(
         })
       : null;
 
+    await db`
+      update chain_operation set status = 'ABANDONED', reserves_source = false,
+        error_code = 'UNSIGNED_EXPIRED', last_checked_at = now()
+      where status in ('BUILDING', 'PREPARED') and reserves_source = true
+        and (signed_hash is null or signed_hash = '')
+        and (signed_xdr is null or signed_xdr = '')
+        and expires_at <= now()
+        and (award_id = ${id} or signer = ${initialActor.public_wallet})
+    `;
+
     const reservation = await db.begin(async (rawTx) => {
       const tx = rawTx as unknown as Db;
       await tx`
@@ -437,19 +447,9 @@ export async function POST(
 
       const duplicateRows = (await tx`
         select * from chain_operation where actor_id = ${appUser.id}
-          and idempotency_key = ${idempotency} limit 1 for update
+          and idempotency_key = ${idempotency} limit 1
       `) as unknown as OperationRow[];
       if (duplicateRows[0]) return { duplicate: duplicateRows[0] as OperationRow };
-
-      await tx`
-        update chain_operation set status = 'ABANDONED', reserves_source = false,
-          error_code = 'UNSIGNED_EXPIRED', last_checked_at = now()
-        where status in ('BUILDING', 'PREPARED') and reserves_source = true
-          and (award_id = ${id} or signer = ${currentActor.public_wallet})
-          and (signed_hash is null or signed_hash = '')
-          and (signed_xdr is null or signed_xdr = '')
-          and expires_at <= now()
-      `;
       const sourceBlocker = (await tx`
         select id, status, action from chain_operation
         where signer = ${currentActor.public_wallet}

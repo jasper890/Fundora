@@ -64,9 +64,10 @@ test("FakeRpc award lifecycle through PAY", async ({ page }) => {
     buffer: tinyJpeg(),
   });
   await page.getByRole("button", { name: "Save evidence revision" }).click();
-  await expect(page.getByText(/Evidence revision .* saved/i)).toBeVisible({
-    timeout: 60_000,
-  });
+  await expect(page).toHaveURL(/\/awards\/[0-9a-f-]+$/i, { timeout: 60_000 });
+  await expect(
+    page.getByRole("heading", { name: /Submit current evidence|Evidence history/i }).first(),
+  ).toBeVisible({ timeout: 30_000 });
 
   const evidenceLink = page.locator('a[href*="/api/v1/evidence/"]').first();
   await expect(evidenceLink).toBeVisible();

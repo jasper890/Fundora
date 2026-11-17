@@ -11,7 +11,7 @@ Continues `4b8361200f7e180b0dc9c1d700a52d32a938537f` on `feature/resume-local-ha
 - Live state reads: bind immutable constructor terms to the stored deployment manifest; reject malformed hold flags. Live submission remains blocked by `LIVE_SUBMISSION_REVIEW_REQUIRED` in both API and gateway.
 - Evidence finalization: reject expired upload reservations both before storage reads and after locking the reservation.
 - Evidence begin/finalize prevent a second unsigned local revision and prevent finalization while an award transaction is unresolved. This retains sequential contract revisions and closes the upload/approval race. Historical inconsistent local records are retained rather than silently edited.
-- Independent review, isolated browser verification and rendered UI review — IN PROGRESS.
+- Independent review, isolated browser verification and rendered UI review — local FakeRpc isolated suite green (17 Nov 2026 continuation); live unlock blockers remain (review_action on reconcile; live digest parser fixture).
 
 The existing `award.evidence_revision/digest` fields track the latest local upload. This continuation preserves that behavior so upload counters, existing records and UI callers remain compatible. Chain preparation must independently establish the confirmed commitment; reconciliation retains a newer or conflicting local commitment and marks it as requiring synchronization.
 
@@ -23,7 +23,8 @@ The existing `award.evidence_revision/digest` fields track the latest local uplo
 - Root focused suite: 24 tests passed across live-state, reconciliation and evidence finalization. The independent Luna xhigh review found no blocking issue in those live-state/reconciliation changes; the parser fixtures use SDK-generated synthetic XDR, not a captured live RPC response. Contract suite: 28 passed with unchanged contract source.
 - Next intermediate suite: quiet lint and 25 unit files / 130 tests passed. TypeScript initially caught an incomplete prepare-query row type after adding evidence authorship; the row type was corrected and TypeScript then passed. Preparation's focused checks passed 4 files / 21 tests. The independent reviewer found no blocking issue in submit binding or the locked evidence-race guards.
 - First isolated run: fresh synthetic database checks passed 7/7; browser suite failed 7/9. It exposed a missing main landmark, an administrator login URL wait that matched `/login/administrator` too early, and missing preparation replay. Those defects are fixed in source; green rerun not yet claimed. A second isolated build stopped on the above TypeScript issue before browsers ran. Both runners stopped only their own test stacks.
-- Production build, expanded isolated browser suite and actual rendered UI acceptance: pending.
+- Continuation isolated green (17 Nov 2026): after password current-check, reservation `expires_at` migration, FakeRpc XDR uniqueness, evidence post-save navigation, review SQL fix, and helper submit enable-wait — `npm.cmd run test:isolated` PASSED pgTAP 7/7 and Playwright 10/10. Unit suite 25/132. `LIVE_SUBMISSION_REVIEW_REQUIRED` retained. Lock review: do not unlock live until reconcile updates `review_action` and a live `Some(BytesN<32>)` digest fixture exists; optional tighter `intent.evidence.author_id` cross-check.
+- Production build outside the isolated runner and formal UI acceptance beyond responsive assertions/spot-check: still pending.
 - No interactive demo database reset, deployment or network transaction performed in this continuation.
 
 Read `ORCHESTRATION_PROGRESS.md` and the three original resume notes for historical context. This file records later evidence; historical claims of unfinished work are closed only by specific results here.

@@ -56,10 +56,13 @@ export class FakeRpc implements RpcGateway {
     snapshot?: AwardSnapshot;
   }): Promise<PreparedEnvelope> {
     if (this.failPrepare) throw new Error("RPC down");
-    const xdr = `FAKE-${args.action}-${args.signer}`;
+    // Include version/holds so repeated actions (e.g. SET_HOLD then clear) do not
+    // collide on chain_operation.signed_hash uniqueness.
+    const snap = args.snapshot ?? this.snapshot;
+    const xdr = `FAKE-${args.action}-${args.signer}-v${snap.version}-s${snap.sponsor_hold ? 1 : 0}-vhold${snap.verifier_hold ? 1 : 0}`;
     return {
       toXdr: () => xdr,
-      hashHex: () => `hash-${args.action}`,
+      hashHex: () => `hash-${args.action}-v${snap.version}`,
       fee: 100,
       source: args.signer,
       signatureCount: 0,
