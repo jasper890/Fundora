@@ -1,6 +1,6 @@
 import "server-only";
 import { sql } from "../db";
-import type { AppUser, AwardView, MemberView, Role } from "../types";
+import type { AppUser, AwardListView, AwardView, MemberView, Role } from "../types";
 
 type MemberRow = {
   id: string;
@@ -39,7 +39,7 @@ export async function loadAppUserByAuthId(
 export async function listVisibleAwardsForUser(
   user: AppUser,
   programId?: string,
-): Promise<AwardView[]> {
+): Promise<AwardListView[]> {
   const db = sql();
   const rows = (await db`
     select
@@ -64,6 +64,7 @@ export async function listVisibleAwardsForUser(
       rm.role as recipient_role,
       rm.active as recipient_active,
       rm.public_wallet as recipient_wallet,
+      ru.username as recipient_username,
       ev.revision as latest_revision,
       ev.digest as latest_digest,
       exists(
@@ -75,6 +76,7 @@ export async function listVisibleAwardsForUser(
     join program_member sm on sm.id = a.sponsor_member_id
     join program_member vm on vm.id = a.verifier_member_id
     join program_member rm on rm.id = a.recipient_member_id
+    join app_user ru on ru.id = rm.user_id
     left join lateral (
       select revision, digest from evidence_version
       where award_id = a.id
@@ -109,6 +111,7 @@ export async function listVisibleAwardsForUser(
     recipient_role: Role;
     recipient_active: boolean;
     recipient_wallet: string;
+    recipient_username: string;
     latest_revision: number | null;
     latest_digest: string | null;
     unresolved: boolean;
@@ -117,6 +120,7 @@ export async function listVisibleAwardsForUser(
   return rows.map((row) => ({
     id: row.id,
     program_id: row.program_id,
+    recipient_username: row.recipient_username,
     status: row.status,
     last_confirmed_ledger: row.last_confirmed_ledger,
     sponsor_hold: row.sponsor_hold,
