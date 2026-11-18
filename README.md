@@ -8,9 +8,15 @@
 
 **Fundora** helps sponsors fund community projects and release payment after completion is verified. A sponsor funds an award, a recipient submits private evidence, an independent verifier approves it, then the sponsor releases payment on **Stellar** — so money moves with a clear proof trail, not on trust alone.
 
-**Tagline:** Open. Verify. Transact.
+**Live app:** [fundora-instaward.vercel.app](https://fundora-instaward.vercel.app). Visitors can choose a workspace and reach its sign-in page. An administrator provisions accounts and project access.
 
-**Tags:** `stellar` · `soroban` · `nextjs` · `supabase` · `freighter` · Trust & Transparency · Community Empowerment · Blockchain-Ready
+## Contents
+
+- [About](#about) · [Roles](#who-its-for) · [Award workflow](#how-it-works)
+- [Architecture](#architecture) · [Tech stack and layout](#tech-stack--layout) · [Status](#status)
+- [Quickstart](#quickstart) · [Local test credentials](#local-test-credentials) · [Walkthrough](#local-walkthrough)
+- [Development checks](#development-checks) · [Troubleshooting](#troubleshooting) · [Security and privacy](#security--privacy)
+- [Contributing](#contributing) · [Contributors](#contributors) · [Documentation](#docs-for-builders--agents) · [License](#license)
 
 ---
 
@@ -51,7 +57,7 @@ On-chain sponsor, recipient, and verifier addresses must differ. Admin status al
 2. A provisioned sponsor defines a community project with fixed completion requirements and deadlines and selects an independent verifier from a project they already sponsor.
 3. Sponsor creates one 20 Testnet XLM award per recipient, up to ten per project, and signs its funding transaction.
 4. Recipient uploads private evidence → **SUBMIT** (wallet sign).
-5. Verifier reviews → **APPROVE** / reject / hold (wallet sign).
+5. The verifier reviews the evidence and records a decision. On-chain approval and rejection require a wallet signature.
 6. Sponsor **PAY**s the fixed award once (wallet sign).
 7. After payout cutoff, unpaid funds can be recovered per contract rules.
 
@@ -111,21 +117,90 @@ docs/brand/   Official Fundora logo
 | Production app | https://fundora-instaward.vercel.app |
 | Preview alias | https://proofpay-preview.vercel.app |
 | Vercel project | `fundora` |
-| Live wallet path | Freighter SUBMIT → APPROVE → PAY |
+| Network | Stellar Testnet |
+| Wallet verification | See the [verification matrix](docs/VERIFICATION.md) and [wallet rehearsal notes](docs/implementation/FREIGHTER_SMOKE_RESUME.md) for tested paths and open checks |
 | Product branding | Fundora |
 
 ---
 
 ## Quickstart
 
-1. Docker Desktop, Node 22+.
-2. From repo root: `npx supabase start`
-3. Copy `web/.env.example` → `web/.env.local` (from `npx supabase status`)
-4. `npm --prefix web install && npm --prefix web run dev` → http://127.0.0.1:3000
-5. Contract tests: `cargo test --manifest-path contracts/award/Cargo.toml --locked`
-6. App checks (from `web/`): `npm run typecheck` · `npm test`
+Install Git and Node.js 22 or newer with npm, then start Docker Desktop or a compatible Docker engine. Rust and Cargo are needed for contract tests. A compatible browser wallet is needed for the live Testnet walkthrough.
 
-More: [docs/OPERATIONS.md](docs/OPERATIONS.md)
+Clone the repository with an account that has access. From the repository root, install dependencies and start local Supabase. Startup applies the repository's migrations to the local stack.
+
+```sh
+git clone https://github.com/storms23/Fundora.git
+cd Fundora
+npm --prefix web ci
+npx supabase start
+npx supabase status
+```
+
+Copy [`web/.env.example`](web/.env.example) to `web/.env.local`. Use the values from **local** Supabase status for the first four entries.
+
+| Variable | Local value or source |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase API URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Local anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Local service role key, for server and seed use |
+| `DATABASE_URL` | Local Postgres connection URL |
+| `AUTH_THROTTLE_SECRET`, `CRON_SECRET` | Separate long random values |
+| `STELLAR_USE_FAKE_RPC`, `STELLAR_ALLOW_SUBMISSION` | Keep the example defaults of `1` and `0` for local UI exploration |
+| `SEED_PASSWORD` | Keep the example value to use the sample credentials below, or choose a local password before seeding |
+
+From `web/`, seed synthetic data and start the app:
+
+```sh
+cd web
+npm run seed
+npm run dev
+```
+
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000). See the [operations guide](docs/OPERATIONS.md) for deployment and Testnet configuration.
+
+## Local test credentials
+
+These synthetic logins come from [the local seed script](web/scripts/seed.ts) with the default prefix and password. Enter the **username** shown below.
+
+| Workspace | Username | Default local password |
+|---|---|---|
+| [Sponsor](http://127.0.0.1:3000/login/sponsor) | `demo-sponsor` | `ProofPay-Demo-Password-12` |
+| [Recipient](http://127.0.0.1:3000/login/recipient) | `demo-recipient-01` | `ProofPay-Demo-Password-12` |
+| [Verifier](http://127.0.0.1:3000/login/verifier) | `demo-verifier` | `ProofPay-Demo-Password-12` |
+| [Administrator](http://127.0.0.1:3000/login/administrator) | `demo-admin` | `ProofPay-Demo-Password-12` |
+
+The standard seed also creates `demo-recipient-02` through `demo-recipient-10`. Use your configured `SEED_PASSWORD` for newly created accounts if you changed the default. Rerunning the seed preserves existing accounts and their passwords.
+
+## Local walkthrough
+
+1. Sign in as **Sponsor** and open the seeded community repair project. Inspect an award's terms, deadline, and payment status.
+2. Sign out and return as **Recipient** to view that account's award and evidence entry point. Use a synthetic file if you try an upload.
+3. Sign in as **Verifier** to open the review workspace. Evidence becomes available for review when the award reaches the applicable submission state.
+4. Sign in as **Administrator** to inspect the user provisioning and membership controls.
+
+The default setup is for exploring the interfaces with fake RPC and submission disabled. For a signed walkthrough, configure the installed Testnet WASM hash and distinct Testnet wallets assigned to the relevant award roles. The seed's randomly generated public addresses have no retained signing keys. Follow the [Freighter rehearsal notes](docs/implementation/FREIGHTER_SMOKE_RESUME.md) for the wallet steps and current verification limits.
+
+## Development checks
+
+| Command from the repository root | Purpose |
+|---|---|
+| `npm --prefix web run lint` | ESLint |
+| `npm --prefix web run typecheck` | TypeScript checking |
+| `npm --prefix web test` | Vitest suite |
+| `npm --prefix web run build` | Next.js production build |
+| `npm --prefix web run test:isolated` | Isolated local Supabase, pgTAP, and Playwright checks with synthetic data |
+| `cargo test --manifest-path contracts/award/Cargo.toml --locked` | Soroban contract tests |
+
+## Troubleshooting
+
+| Symptom | What to check |
+|---|---|
+| Supabase fails to start | Check that Docker is running and inspect `npx supabase status` from the repository root. Check the startup output for local port conflicts. |
+| The app cannot reach Supabase | Compare `web/.env.local` with the current local stack settings. Restart the dev server after editing the file. |
+| A seeded login fails | Confirm the seed completed against the same stack the app uses. Enter the username and use the password set when that account was created. |
+| A wallet cannot sign | For the live flow, confirm the wallet is on Stellar Testnet and its public address matches the assigned role. The default local configuration disables submission. |
+| PowerShell blocks `npm.ps1` or `npx.ps1` | Use `npm.cmd` or `npx.cmd` in the same command. |
 
 ---
 
@@ -134,6 +209,10 @@ More: [docs/OPERATIONS.md](docs/OPERATIONS.md)
 - Evidence objects are private; access is authorized and time-bounded.
 - No secret keys, recovery phrases, or personal evidence in Git or logs.
 - Wallet material stays with the user (Freighter); the server never holds signing keys.
+
+## Contributing
+
+Read the [engineering standard](docs/ENGINEERING_STANDARD.md) before changing product behavior. Use the [OpenSpec workflow](docs/OPENSPEC.md) for scoped implementation changes. Describe the affected roles, include relevant verification results with your change, and use synthetic records in screenshots and bug reports. For contribution scope and implementation context, see [AGENTS.md](AGENTS.md).
 
 ---
 
