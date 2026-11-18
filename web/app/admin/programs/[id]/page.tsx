@@ -50,7 +50,7 @@ export default async function AdminProgramPage({
       <p className="lead">
         <Link href="/admin">← Admin</Link>
       </p>
-      <PageHeading title={title} lead="Program membership (no evidence access here)." />
+      <PageHeading title={title} lead="Project membership (no evidence access here)." />
       <ul style={{ listStyle: "none", padding: 0 }}>
         {members.map((m) => (
           <li key={`${m.username}-${m.role}`} style={{ padding: "0.4rem 0" }}>

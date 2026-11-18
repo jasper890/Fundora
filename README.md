@@ -47,9 +47,9 @@ On-chain sponsor, recipient, and verifier addresses must differ. Admin status al
 
 ## How it works
 
-1. Sponsor defines a community project (immutable terms + deadlines).
-2. Admin provisions users and wallets.
-3. Sponsor creates one award per recipient and funds it.
+1. An administrator provisions users and wallets.
+2. A provisioned sponsor defines a community project with fixed completion requirements and deadlines and selects an independent verifier from a project they already sponsor.
+3. Sponsor creates one 20 Testnet XLM award per recipient, up to ten per project, and signs its funding transaction.
 4. Recipient uploads private evidence → **SUBMIT** (wallet sign).
 5. Verifier reviews → **APPROVE** / reject / hold (wallet sign).
 6. Sponsor **PAY**s the fixed award once (wallet sign).
@@ -109,8 +109,9 @@ docs/brand/   Official Fundora logo
 |---|---|
 | Product path | Next.js + Supabase (`web/`) |
 | Preview | https://proofpay-preview.vercel.app |
+| Vercel project | `fundora` |
 | Live wallet path | Freighter SUBMIT → APPROVE → PAY |
-| In-app Fundora labels | Coming in a follow-up UI rename |
+| Product branding | Fundora |
 
 ---
 

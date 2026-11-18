@@ -204,7 +204,7 @@ function actionDeadline(
     return null;
   }
   if (award.recipient_member.user_id === user.id && award.status === "FUNDED") {
-    return { label: "Claim deadline", value: award.claim_deadline };
+    return { label: "Submission deadline", value: award.claim_deadline };
   }
   if (award.verifier_member.user_id === user.id && award.status === "SUBMITTED") {
     return { label: "Review deadline", value: award.review_deadline };
@@ -233,7 +233,7 @@ export default async function AwardPage({
   } catch {
     return (
       <AppShell username={user.username} isStaff={user.is_staff}>
-        <Notice>Database is not reachable. Start Supabase and seed demo data.</Notice>
+        <Notice>Award details are temporarily unavailable. Try again shortly.</Notice>
       </AppShell>
     );
   }
@@ -424,7 +424,7 @@ export default async function AwardPage({
         <div className="award-reference-content">
           <p>{award.requirements_text}</p>
           <dl>
-            <dt>Claim deadline</dt><dd>{formatDeadline(award.claim_deadline)}</dd>
+            <dt>Submission deadline</dt><dd>{formatDeadline(award.claim_deadline)}</dd>
             <dt>Review deadline</dt><dd>{formatDeadline(award.review_deadline)}</dd>
             <dt>Payout deadline</dt><dd>{formatDeadline(award.payout_deadline)}</dd>
           </dl>

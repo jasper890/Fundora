@@ -14,7 +14,7 @@ export function SmokeContext({
   awardStatus,
 }: Props) {
   return (
-    <aside className="smoke-context" aria-label="Testing context">
+    <aside className="smoke-context" aria-label="Award context">
       <p>
         <strong>{username}</strong> · {roleLabel} · status {awardStatus}
       </p>

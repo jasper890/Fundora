@@ -44,16 +44,17 @@ async function findCreatedSponsorAward(): Promise<{
 test("sponsor register filters preserve URL state and restore row focus", async ({ page }) => {
   const created = await findCreatedSponsorAward();
   await loginAs(page, "sponsor", "demo-sponsor");
+  await page.goto(`/programs?program=${created.programId}`);
   const table = page.getByRole("table");
   await expect(table).toBeVisible();
 
   const search = page.getByRole("searchbox", {
     name: "Search participant, status, or next step",
   });
-  await page.getByLabel("Program").selectOption(created.programId);
+  await page.getByRole("combobox", { name: /^Project/ }).selectOption(created.programId);
   await search.fill(created.username);
-  await page.getByLabel("Status").selectOption("CREATED");
-  await page.getByLabel("Sort").selectOption("participant");
+  await page.getByRole("combobox", { name: /^Status/ }).selectOption("CREATED");
+  await page.getByRole("combobox", { name: /^Sort/ }).selectOption("participant");
   await page.getByRole("button", { name: "Apply filters" }).click();
   await expect(page).toHaveURL(/view=needs-action/);
   await expect(page).toHaveURL(new RegExp("program=" + created.programId));

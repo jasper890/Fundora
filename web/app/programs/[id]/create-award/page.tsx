@@ -57,7 +57,7 @@ export default async function CreateAwardPage({
   return (
     <AppShell username={user.username} roleLabel="SPONSOR">
       <p className="lead">
-        <Link href="/programs">← Programs</Link>
+        <Link href="/programs">← Projects</Link>
       </p>
       <PageHeading
         title="Create participant award"

@@ -14,7 +14,7 @@ Read next: [Repository validation](ProofPay_Repository_Validation.md), [System a
 
 ## 2. One initial use case
 
-**Training-completion stipend for a small community workshop.** One simulated sponsor offers a fixed 20 Testnet XLM stipend to each of up to 10 enrolled synthetic participants. A separately appointed verifier checks the organizer's attendance/completion record. The sponsor then authorizes payout for approved claims.
+**Completion-based funding for community projects.** One simulated sponsor offers a fixed 20 Testnet XLM award to each of up to 10 synthetic recipients per project. An independent verifier checks completion against a reliable source, such as a site inspection log. The sponsor then authorizes payout for approved claims.
 
 Why this case: no roof inspection, clinical records, government identity integration, merchant network, lending, or physical inventory is needed. A controlled attendance record can demonstrate independent approval without pretending photographs establish truth. The same workflow may later support other programs, but this sprint implements only this one.
 
@@ -35,7 +35,7 @@ On-chain sponsor, recipient and verifier addresses must all differ. Provision se
 
 Happy path:
 
-1. Sponsor creates a workshop program with immutable completion requirements and UTC deadlines.
+1. A provisioned sponsor creates a community project with immutable completion requirements and UTC deadlines and selects an active verifier from a project they already sponsor. Creating the project records terms and memberships without funding an award.
 2. Admin provisions demo users and public wallet addresses; no public signup or identity checks.
 3. Sponsor creates one award per recipient. Recipient sees the amount, verifier, deadlines, recovery rules and wallet destination before funding.
 4. Sponsor deploys and funds the award through their Testnet wallet. UI waits for confirmed network success.
@@ -46,7 +46,7 @@ Happy path:
 
 ## 4. MVP and exclusions
 
-Included: account login, program-scoped permissions, three role dashboards, private evidence upload/download, one stipend condition, evidence revisions before approval, explicit review and rejection, two-party payment authorization, holds, verifier replacement, expiry recovery, a readable audit trail, JSON/CSV export, transaction reconciliation, contract and application tests, and reproducible Testnet demo instructions.
+Included: account login, program-scoped permissions, three role dashboards, private evidence upload/download, one completion condition per award, evidence revisions before approval, explicit review and rejection, two-party payment authorization, holds, verifier replacement, expiry recovery, a readable audit trail, JSON/CSV export, transaction reconciliation, contract and application tests, and reproducible Testnet demo instructions.
 
 Excluded: AI, automatic evidence authenticity decisions, Mainnet, real money, fiat cash-out, SMS, passkeys/embedded wallets, sponsored fees, merchant vouchers, multi-party quorum approval, a general rules builder, public crowdfunding, mobile apps, multi-organization SaaS tenancy and insurance. Basic wallet signing is an acceptable business-role UX for this technical demo; future mainstream onboarding is not claimed solved.
 
@@ -55,7 +55,7 @@ Excluded: AI, automatic evidence authenticity decisions, Mainnet, real money, fi
 ## 5. Trust, privacy and disputes
 
 - A signature establishes approval by a key. Neither it nor an evidence hash proves physical attendance or identity.
-- Prefer a source record controlled by the organizer and direct confirmation by an independently appointed verifier. A photograph or AI detector score is insufficient by itself.
+- Prefer a reliable source record, such as an inspection log or a completion record controlled by the organizer and direct confirmation by an independently appointed verifier. A photograph or AI detector score is insufficient by itself.
 - A suspicious claim is held. Record what was checked, by whom, and why a decision was made. Never label a claim "fraud-proof" or "blockchain verified attendance".
 - Verifier or sponsor can set their own on-chain hold; only its setter can clear it. A hold blocks approval/payout but never blocks the expiry refund. Recipient dispute requests reach these reviewers through the app and are not an automatic payment veto. Disclose this limitation.
 - A rejected claim may receive an off-chain appeal review before the payout deadline; a verifier may reopen it on-chain, producing a new event. No payout changes after final settlement. Details are in the system plan.
@@ -75,7 +75,7 @@ Potential future revenue is organization subscriptions/integration support. No w
 
 | ID | Observable result |
 |---|---|
-| A1 | One workshop program, 1 sponsor, 1 verifier, 10 synthetic recipients; each award has fixed 20 Testnet XLM terms and three distinct addresses |
+| A1 | One community project in the acceptance rehearsal, 1 sponsor, 1 verifier, 10 synthetic recipients; each award has fixed 20 Testnet XLM terms and three distinct addresses |
 | A2 | Sponsor funds an award; confirmation and actual SAC balance are independently checked |
 | A3 | Recipient submits evidence; another participant and unauthenticated user cannot download it |
 | A4 | Verifier signs approval; sponsor signs payout; exact amount reaches the enrolled recipient once |

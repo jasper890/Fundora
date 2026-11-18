@@ -169,7 +169,7 @@ export function SponsorWorkspace({
       <section className="sponsor-funding-summary" aria-labelledby="sponsor-funding-title">
         <div className="sponsor-summary-heading">
           <div>
-            <span className="eyebrow">Confirmed program data</span>
+            <span className="eyebrow">Confirmed project data</span>
             <h2 id="sponsor-funding-title">Funding summary</h2>
           </div>
           <span className="sponsor-testnet-note">Testnet XLM - no real monetary value</span>
@@ -240,7 +240,7 @@ export function SponsorWorkspace({
           key={JSON.stringify([program.id, view, filters.search, filters.status, filters.sort])}
         >
           <label>
-            <span>Program</span>
+            <span>Project</span>
             <select name="program" defaultValue={program.id}>
               {programs.map((item) => (
                 <option key={item.id} value={item.id}>{item.title}</option>
@@ -337,8 +337,8 @@ export function SponsorWorkspace({
         )}
       </section>
 
-      <nav className="home-actions sponsor-program-actions" aria-label="Program actions">
-        <Link className="button secondary" href={"/programs/" + program.id}>View program details</Link>
+      <nav className="home-actions sponsor-program-actions" aria-label="Project actions">
+        <Link className="button secondary" href={"/programs/" + program.id}>View project details</Link>
         <a className="button secondary" href={"/api/v1/programs/" + program.id + "/export?format=json"}>Export JSON</a>
         <Link className="button secondary" href={"/programs/" + program.id + "/create-award"}>Create award</Link>
         {user.is_staff ? <Link className="button secondary" href="/admin">Admin</Link> : null}

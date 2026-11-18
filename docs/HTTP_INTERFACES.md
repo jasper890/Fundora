@@ -10,6 +10,10 @@ Decimal strings encode amount, chain version, fee, and ledger timestamp. Revisio
 
 Client never supplies a destination, asset, amount, contract ID, RPC URL, arbitrary method, or fee override. Derive these from verified award terms/config. Persist operation ownership; another user's operation is never writable. Field names below are the planned HTTP names, not existing SDK arguments.
 
+## Create a community project
+
+`POST /api/v1/programs` accepts `title` (1 to 160 characters), `requirements_text` (1 to 4,000 characters), `verifier_member_id` (UUID), and `claim_deadline`, `review_deadline`, and `payout_deadline` (UTC ISO timestamps in strictly increasing order, with submission in the future). It returns 201 with `{ "id": "<program UUID>" }`. The server requires an active sponsor and the selected active verifier from a shared program, with distinct users and existing Stellar wallets. It creates the program and both memberships in a single transaction. Funding remains a separate award action.
+
 ## Prepare an action
 
 `POST /awards/<uuid>/prepare/<action>/`, with `Idempotency-Key` header (UUID generated once per intended action). Canonicalize the action name to the plan's uppercase enum through a fixed route lookup; no dynamic contract-method dispatch.

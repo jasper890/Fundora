@@ -1,3 +1,7 @@
+## Community project setup
+
+- [x] Verify an active provisioned sponsor can create a community project and reuse a distinct active verifier from a shared project. Reject unauthorized access and invalid deadlines. Verify initial memberships are created together and creation does not fund an award. Passed in the isolated browser suite on 18 November 2026.
+
 ## 1. Task 1 baseline
 
 Source: [system-plan Task 1](../../../ProofPay_System_and_Implementation_Plan.md). Implementation was authorized on 16 November 2026. Task evidence is recorded in [verification](../../../../docs/VERIFICATION.md); unchecked items remain open.

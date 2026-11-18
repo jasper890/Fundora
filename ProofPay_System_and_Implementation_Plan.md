@@ -2,7 +2,7 @@
 
 > **For agentic workers:** Read all four handoff documents first. Use the available executing-plans skill to implement task-by-task after the user authorizes implementation. Subagent-driven execution is an alternative only when authorized. Checkboxes below are future work, not completed work.
 
-**Goal:** Demonstrate a funded training stipend paid exactly once after independent verification, with private evidence and recoverable unpaid Testnet funds.
+**Goal:** Demonstrate a funded community project award paid exactly once after independent verification, with private evidence and recoverable unpaid Testnet funds.
 
 **Architecture:** One original Django web application plus a small browser wallet-signing bundle and one original Soroban contract type, deployed once per award. Application database holds private workflow/evidence; network-confirmed contract state controls funds. There is no custom RPC server, microservice mesh, AI service or pooled cross-award balance.
 
@@ -12,8 +12,8 @@
 
 ## Global constraints
 
-- Testnet only; native Testnet XLM via SAC; seven decimals; stipend exactly 200,000,000 base units.
-- One workshop program, up to 10 recipients; one condition and one award contract per recipient. No real recipients or money.
+- Testnet only; native Testnet XLM via SAC; seven decimals; each award exactly 200,000,000 base units.
+- Per project, up to 10 recipients with one condition and one award contract per recipient. Project creation reuses an existing provisioned sponsor and independent verifier pair and their registered wallets. It creates the program and both memberships atomically. Funding remains a separate wallet action. No real recipients or money.
 - No AI, public signup, Mainnet, fiat cash-out, vouchers, fee sponsorship or stored wallet secrets.
 - Sponsor, verifier and recipient are distinct provisioned users and distinct classic G-addresses for each award. Only their wallet signatures authorize chain actions.
 - No arbitrary user-supplied RPC/file-fetch URLs or payout addresses. Constructor-bound payee/token/amount are immutable.

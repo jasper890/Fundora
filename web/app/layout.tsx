@@ -44,7 +44,7 @@ const sourceSans = localFont({
 export const metadata: Metadata = {
   title: "Fundora",
   description:
-    "Open. Verify. Transact. Community project funding on Stellar Testnet — demo only, no real monetary value.",
+    "Open. Verify. Transact. Fund community projects and release payment after independent verification on Stellar Testnet.",
 };
 
 export const dynamic = "force-dynamic";

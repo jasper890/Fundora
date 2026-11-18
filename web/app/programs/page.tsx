@@ -71,7 +71,7 @@ export default async function ProgramsPage({
         : await listVisibleAwardsForUser(user);
   } catch {
     dbError =
-      "Database is not reachable yet. Start local Supabase and run the seed script.";
+      "Projects are temporarily unavailable. Try again shortly.";
   }
 
   const primaryRole = (selectedProgram?.role as Role | undefined) ?? null;
@@ -104,6 +104,7 @@ export default async function ProgramsPage({
         isStaff={user.is_staff}
       >
         {dbError ? <Notice>{dbError}</Notice> : null}
+        <p><Link className="button quiet" href="/programs/create">Create project</Link></p>
         <RestoreSponsorRegisterFocus />
         <SponsorWorkspace
           awards={awards.filter(
@@ -143,7 +144,7 @@ export default async function ProgramsPage({
           <section className="home-overview" aria-label="Confirmed award activity">
             <div className="home-overview-heading">
               <div>
-                <span className="eyebrow">Program activity</span>
+                <span className="eyebrow">Project activity</span>
                 <h2>Confirmed award status</h2>
               </div>
             </div>
@@ -207,12 +208,12 @@ export default async function ProgramsPage({
         </div>
 
         {selectedProgram ? (
-          <nav className="home-actions" aria-label="Program actions">
+          <nav className="home-actions" aria-label="Project actions">
             <Link
               className="button secondary"
               href={"/programs/" + selectedProgram.id}
             >
-              View program details
+              View project details
             </Link>
             {primaryRole === "SPONSOR" || primaryRole === "VERIFIER" ? (
               <>

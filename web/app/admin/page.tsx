@@ -34,11 +34,11 @@ export default async function AdminHomePage() {
     <AppShell username={user.username} roleLabel="ADMIN" isStaff>
       <PageHeading
         title="Administrator workspace"
-        lead="Provision members and manage program access. No payment authority and no automatic evidence access."
+        lead="Provision members and manage project access. No payment authority and no automatic evidence access."
       />
       <AdminUserForm />
       <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.05rem" }}>Programs</h2>
+        <h2 style={{ fontSize: "1.05rem" }}>Projects</h2>
         <ul style={{ listStyle: "none", padding: 0 }}>
           {programs.map((p) => (
             <li key={p.id} style={{ padding: "0.5rem 0" }}>

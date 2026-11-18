@@ -58,7 +58,7 @@ function makeAward(overrides: Record<string, unknown> = {}) {
     version: 0, status: "CREATED", evidence_revision: 0, evidence_digest: "",
     verifier_sync_required: false, sponsor_hold: false, verifier_hold: false,
     base_units: 200000000, deployment_manifest: {},
-    requirements_text: "Synthetic training completion", requirements_version: 1,
+    requirements_text: "Synthetic community repair completion", requirements_version: 1,
     claim_deadline: new Date(Date.now() + 86_400_000),
     review_deadline: new Date(Date.now() + 172_800_000),
     payout_deadline: new Date(Date.now() + 259_200_000),

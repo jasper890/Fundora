@@ -15,7 +15,7 @@ The original PDF and ServicePass Markdown files remain background research. This
 
 | Decision | Handoff instruction |
 |---|---|
-| First use case | One synthetic community workshop, fixed completion stipend; at most 10 recipients |
+| First use case | One synthetic community project with fixed completion awards; at most 10 recipients per project |
 | Money | 20 **Testnet XLM** per award through native SAC; no real value, dollar equivalence or live USDC claim |
 | App foundation | Small original Django application; no wholesale Hypha/OpenSPP/AidFlow fork |
 | Reuse | Published Python SDK; selectively adapt official Soroban patterns. H/O/B are references; A is rejected |
@@ -95,7 +95,7 @@ These are checkpoints, not an eligibility opinion. Apply the actual current word
 
 ### Our proposal preparation tasks
 
-- [ ] **P:** Identify a real training organizer/program owner and interview them; no actual partner is required to operate a synthetic demo, but demand remains unproven.
+- [ ] **P:** Identify a community project organizer or sponsor and interview them; no actual partner is required to operate a synthetic demo, but demand remains unproven.
 - [ ] **P:** Explain who currently verifies completion, how payments happen, and what measurable problem ProofPay would improve. Compare with normal databases/bank payments.
 - [ ] **P:** Explain differentiation from Rahat/CHATS, Trustless Work and both AidFlow repositories. Never claim "first", "no competitors" or an award based on a GitHub README.
 - [ ] **P:** Prepare a one-page scope, architecture, a short demo, repository links and test evidence. Video length and form fields are chapter-dependent, not universal rules inferred here.
@@ -113,7 +113,7 @@ These are checkpoints, not an eligibility opinion. Apply the actual current word
 |---|---|---|
 | Developer capacity and budget | Credible sprint promise | Use this plan as estimate input; confirm before committing dates/amount |
 | Chapter engagement and applicant eligibility | Award submission | User/lead confirms current route and eligibility; no funded status claimed |
-| Pilot/customer demand | Commercial claims and a live pilot | Synthetic workshop only; interview potential organizers |
+| Pilot/customer demand | Commercial claims and a live pilot | Synthetic projects only; interview potential organizers |
 | Browser wallet compatibility | Wallet UI integration | Task 1 probe; documented supported version before rollout |
 | Testnet native SAC/config/fees | Signing/deployment | Discover/verify at build; no invented asset address |
 | Hosting/storage/secrets provider | Hosted demo | Local default, then explicit deployment setup and persistent private storage |

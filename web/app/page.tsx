@@ -64,9 +64,6 @@ export default function EntryPage() {
             </section>
           ))}
         </div>
-        <p className="demo-label">
-          Demo · Testnet XLM — no real monetary value · provisioned accounts only
-        </p>
       </main>
     </>
   );

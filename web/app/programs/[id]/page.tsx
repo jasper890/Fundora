@@ -36,7 +36,7 @@ export default async function ProgramDetailPage({
     if (error && typeof error === "object" && "digest" in error) throw error;
     return (
       <AppShell username={user.username} isStaff={user.is_staff}>
-        <Notice>Program information is temporarily unavailable.</Notice>
+        <Notice>Project information is temporarily unavailable.</Notice>
       </AppShell>
     );
   }
@@ -44,13 +44,13 @@ export default async function ProgramDetailPage({
 
   return (
     <AppShell username={user.username} roleLabel={program.role} isStaff={user.is_staff}>
-      <p className="lead"><Link href="/programs">← Programs</Link></p>
-      <PageHeading title={program.title} lead={`${program.role} program workspace`} />
+      <p className="lead"><Link href="/programs">← Projects</Link></p>
+      <PageHeading title={program.title} lead={`${program.role} project workspace`} />
       <section className="award-section">
-        <h2>Program terms</h2>
+        <h2>Project terms</h2>
         <p>{program.requirements_text}</p>
         <dl>
-          <dt>Claim deadline</dt><dd>{formatDeadline(program.claim_deadline)}</dd>
+          <dt>Submission deadline</dt><dd>{formatDeadline(program.claim_deadline)}</dd>
           <dt>Review deadline</dt><dd>{formatDeadline(program.review_deadline)}</dd>
           <dt>Payout deadline</dt><dd>{formatDeadline(program.payout_deadline)}</dd>
         </dl>
@@ -67,7 +67,7 @@ export default async function ProgramDetailPage({
       <section className="award-section">
         <h2>Your awards ({awards.length})</h2>
         {awards.length === 0 ? (
-          <p className="lead">No awards are assigned to your active program role yet.</p>
+          <p className="lead">No awards are assigned to your active project role yet.</p>
         ) : (
           <ul>
             {awards.map((award) => (

@@ -4,6 +4,21 @@ Define proposed authenticated award access and independent role assignments befo
 
 ## ADDED Requirements
 
+### Requirement: Provisioned sponsors can create community projects
+The application SHALL let an active sponsor define completion requirements and ordered future deadlines using an independent verifier from a project they already sponsor. The application SHALL reuse distinct registered wallets and save the project and both memberships atomically. Project creation SHALL NOT fund an award or prepare a chain transaction.
+
+#### Scenario: Sponsor creates a project
+- **WHEN** an active provisioned sponsor submits valid terms and a distinct active verifier assignment from a shared project
+- **THEN** the application creates a project with both members and no awards
+
+#### Scenario: A verifier assignment is unavailable
+- **WHEN** the submitted verifier is inactive, is the sponsor, or lacks an active verifier assignment on a shared project
+- **THEN** the application denies creation without persisting a project
+
+#### Scenario: Membership persistence fails
+- **WHEN** writing the initial memberships fails
+- **THEN** the application rolls back project creation
+
 ### Requirement: Private pages require authentication
 The application SHALL require provisioned authenticated accounts for private pages and SHALL provide no public signup.
 
