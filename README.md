@@ -108,7 +108,8 @@ docs/brand/   Official Fundora logo
 | Item | State |
 |---|---|
 | Product path | Next.js + Supabase (`web/`) |
-| Preview | https://proofpay-preview.vercel.app |
+| Production app | https://fundora-instaward.vercel.app |
+| Preview alias | https://proofpay-preview.vercel.app |
 | Vercel project | `fundora` |
 | Live wallet path | Freighter SUBMIT → APPROVE → PAY |
 | Product branding | Fundora |

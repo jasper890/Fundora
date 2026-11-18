@@ -1089,18 +1089,20 @@ p.notice {
   box-shadow: 0 12px 30px rgb(27 55 44 / 9%);
 }
 
-.door-number {
+.door-icon {
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   place-items: center;
   border: 1px solid #f0c1a8;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--coral-soft);
   color: #84452e;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+}
+
+.door-icon svg {
+  width: 20px;
+  height: 20px;
 }
 
 .workspace-door h2 {
