@@ -68,6 +68,7 @@ export default function EntryPage() {
             </section>
           ))}
         </div>
+        <p><Link href="/sponsors">Explore Fundora for sponsors →</Link></p>
         <p className="demo-label">
           Demo · Testnet XLM — no real monetary value · provisioned accounts only
         </p>
