@@ -167,7 +167,7 @@ export function nextStep(award: AwardView, user: AppUser): string {
   }
 
   if (status === "REFUNDED") {
-    return "Unpaid funds were returned to the sponsor. No stipend was paid.";
+    return "Unpaid funds were returned to the sponsor. No award payment was made.";
   }
 
   if (status === "CANCELLED") {

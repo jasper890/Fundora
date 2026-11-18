@@ -2,7 +2,7 @@
 
 ## DaisyUI skill
 
-The official daisyUI 5.7.x Codex skill and its component references live in `.agents/skills/daisyui/`. The skill is agent guidance only. ProofPay currently uses Django templates and static CSS; `package.json` does not install Tailwind CSS or daisyUI. Do not emit daisyUI classes or switch the app's styling stack until the runtime dependencies are intentionally added.
+The official daisyUI 5.7.x Codex skill and its component references live in `.agents/skills/daisyui/`. The skill is agent guidance only. Fundora uses Next.js and project CSS. The app does not install Tailwind CSS or daisyUI. Do not emit daisyUI classes or switch the app's styling stack until the runtime dependencies are intentionally added.
 
 ## Figma MCP
 
@@ -12,7 +12,7 @@ The ChatGPT Figma connector and the Codex CLI MCP are separate connections. Befo
 
 ## Apple design reference
 
-ProofPay is a web app. Apple's [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/) can inform clear hierarchy, accessible controls, concise feedback, and mobile ergonomics. Apple's downloadable [iOS and iPadOS UI Kit](https://developer.apple.com/design/resources/) is licensed for mockups of software that runs on Apple operating systems; its license does not allow using those assets for a web app mockup or embedding them in a web product. Do not copy its components, icons, fonts, or other assets into ProofPay. If a separate native iOS product is designed later, use the official Figma kit under its license.
+Fundora is a web app. Apple's [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/) can inform clear hierarchy, accessible controls, concise feedback, and mobile ergonomics. Apple's downloadable [iOS and iPadOS UI Kit](https://developer.apple.com/design/resources/) is licensed for mockups of software that runs on Apple operating systems; its license does not allow using those assets for a web app mockup or embedding them in a web product. Do not copy its components, icons, fonts, or other assets into Fundora. If a separate native iOS product is designed later, use the official Figma kit under its license.
 
 ## Figma Action request
 

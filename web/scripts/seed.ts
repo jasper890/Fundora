@@ -1,5 +1,5 @@
 /**
- * Idempotent synthetic cohort seed for local Supabase.
+ * Idempotent synthetic project seed for local Supabase.
  * Usage: npx tsx scripts/seed.ts
  * Requires env from .env.local (service role + DATABASE_URL).
  */
@@ -111,8 +111,14 @@ async function main() {
     `;
   }
 
-  const title = `Synthetic ProofPay workshop (${PREFIX})`;
-  const existing = await sql`select id from program where title = ${title} limit 1`;
+  const title = `Synthetic Fundora community repair (${PREFIX})`;
+  const legacyTitle = `Synthetic ProofPay workshop (${PREFIX})`;
+  const existing = await sql`
+    select id from program
+    where title in (${title}, ${legacyTitle})
+      and sponsor_user_id = ${userIds[0]} and verifier_user_id = ${userIds[1]}
+    limit 1
+  `;
   if (existing.length) {
     const programId = existing[0].id as string;
     console.log(`Existing synthetic program: ${programId}; assigned wallets left unchanged.`);
@@ -132,7 +138,7 @@ async function main() {
       claim_deadline, review_deadline, payout_deadline
     ) values (
       ${title},
-      ${"Complete the synthetic workshop and have its organizer record independently checked. Synthetic Testnet demo only; no real monetary value."},
+      ${"Repair the shared community benches and submit a completion record that an independent verifier can check against the site inspection log. Synthetic Testnet demo only; no real monetary value."},
       1,
       ${userIds[0]},
       ${userIds[1]},

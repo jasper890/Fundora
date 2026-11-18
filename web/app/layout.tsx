@@ -42,9 +42,9 @@ const sourceSans = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "ProofPay",
+  title: "Fundora",
   description:
-    "Private Stellar Testnet stipend awards — demo only, no real monetary value.",
+    "Open. Verify. Transact. Community project funding on Stellar Testnet — demo only, no real monetary value.",
 };
 
 export const dynamic = "force-dynamic";

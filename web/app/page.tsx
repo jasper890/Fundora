@@ -1,3 +1,4 @@
+import { BrandLink } from "@/components/BrandLink";
 import Link from "next/link";
 import { PageHeading } from "@/components/PageHeading";
 import { SkipLink } from "@/components/SkipLink";
@@ -7,8 +8,8 @@ const DOORS = [
   {
     slug: "sponsor",
     number: "01",
-    title: "Keep the cohort moving",
-    body: "Fund awards and release approved stipends.",
+    title: "Fund community projects",
+    body: "Fund awards and release approved payments.",
   },
   {
     slug: "verifier",
@@ -25,8 +26,8 @@ const DOORS = [
   {
     slug: "administrator",
     number: "04",
-    title: "Help the program run smoothly",
-    body: "Provision members and manage program access.",
+    title: "Manage project access",
+    body: "Provision members and manage project access.",
   },
 ] as const;
 
@@ -37,12 +38,7 @@ export default function EntryPage() {
       <TestnetBanner />
       <main className="entry-page" id="main">
         <div className="entry-masthead">
-          <Link className="brand" href="/" aria-label="ProofPay home">
-            <span className="brand-mark" aria-hidden="true">P</span>
-            <span>
-              ProofPay<span className="brand-period">.</span>
-            </span>
-          </Link>
+          <BrandLink href="/" />
           <span className="entry-environment">
             <span className="banner-signal" aria-hidden="true" />
             Provisioned access only

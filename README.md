@@ -6,7 +6,7 @@
 
 # Fundora
 
-**Fundora** pays training stipends only after completion is verified. A sponsor funds an award, a participant submits private evidence, an independent verifier approves it, then the sponsor releases payment on **Stellar** — so money moves with a clear proof trail, not on trust alone.
+**Fundora** helps sponsors fund community projects and release payment after completion is verified. A sponsor funds an award, a recipient submits private evidence, an independent verifier approves it, then the sponsor releases payment on **Stellar** — so money moves with a clear proof trail, not on trust alone.
 
 **Tagline:** Open. Verify. Transact.
 
@@ -16,19 +16,19 @@
 
 ## About
 
-Fundora is built for **community workshops and training cohorts**. Sponsors define fixed stipend terms, participants upload completion evidence privately, verifiers decide independently, and sponsors authorize payout. Evidence stays off-chain; Stellar records the approvals and transfers your organization can audit.
+Fundora is built for **community activities with verifiable outcomes**. Sponsors define fixed award terms, recipients upload completion evidence privately, verifiers decide independently, and sponsors authorize payout. Evidence stays off-chain; Stellar records the approvals and transfers your organization can audit.
 
 Brand values:
 
 | | |
 |---|---|
 | **Trust & Transparency** | Separated roles; approvals and payouts are inspectable on-chain |
-| **Community Empowerment** | Designed for real training programs and cohort stipends |
+| **Community Empowerment** | Designed for community projects with clearly defined outcomes |
 | **Blockchain-Ready** | Soroban award contracts with Freighter wallet signing |
 
 Logo & brand kit: [docs/brand/](docs/brand/)
 
-> Historical note: the codebase and some docs may still say **ProofPay** until the UI rename pass. Rules and architecture are the same product.
+Older engineering records and compatibility identifiers use the original ProofPay name.
 
 ---
 
@@ -47,12 +47,12 @@ On-chain sponsor, recipient, and verifier addresses must differ. Admin status al
 
 ## How it works
 
-1. Sponsor defines a workshop program (immutable terms + deadlines).
+1. Sponsor defines a community project (immutable terms + deadlines).
 2. Admin provisions users and wallets.
-3. Sponsor creates one award per participant and funds it.
+3. Sponsor creates one award per recipient and funds it.
 4. Recipient uploads private evidence → **SUBMIT** (wallet sign).
 5. Verifier reviews → **APPROVE** / reject / hold (wallet sign).
-6. Sponsor **PAY**s the fixed stipend once (wallet sign).
+6. Sponsor **PAY**s the fixed award once (wallet sign).
 7. After payout cutoff, unpaid funds can be recovered per contract rules.
 
 ---

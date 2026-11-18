@@ -179,22 +179,11 @@ p {
   color: #fff;
 }
 
-.brand-mark {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 auto;
-  place-items: center;
-  border: 1px solid rgb(255 248 231 / 55%);
-  border-radius: 50%;
-  color: var(--ivory);
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0;
-}
-
-.brand-period {
-  color: var(--coral);
+.brand-logo {
+  width: 118px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
 }
 
 .sidebar-context {
@@ -1052,11 +1041,6 @@ p.notice {
   color: var(--green-deep);
 }
 
-.entry-masthead .brand-mark {
-  border-color: #9aafa0;
-  color: var(--green);
-}
-
 .entry-environment {
   display: inline-flex;
   align-items: center;
@@ -1438,11 +1422,6 @@ th {
 
   .brand {
     font-size: 1.18rem;
-  }
-
-  .brand-mark {
-    width: 31px;
-    height: 31px;
   }
 
   .sidebar-context {

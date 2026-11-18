@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandLink } from "@/components/BrandLink";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignOutButton } from "./SignOutButton";
@@ -32,12 +33,7 @@ export function AppShell({ children, username, roleLabel, isStaff }: Props) {
       <TestnetBanner />
       <div className="app-shell">
         <aside className="sidebar">
-          <Link className="brand" href="/programs" aria-label="ProofPay home">
-            <span className="brand-mark" aria-hidden="true">P</span>
-            <span>
-              ProofPay<span className="brand-period">.</span>
-            </span>
-          </Link>
+          <BrandLink href="/programs" />
           <p className="sidebar-context">WORKSPACE</p>
           {roleLabel ? <p className="sidebar-role">{roleLabel}</p> : null}
           <nav aria-label="Primary">
@@ -53,7 +49,7 @@ export function AppShell({ children, username, roleLabel, isStaff }: Props) {
                   <rect x="11.5" y="11.5" width="5.5" height="5.5" rx="1" />
                 </svg>
               </span>
-              <span>Programs</span>
+              <span>Projects</span>
             </Link>
             <Link
               href="/wallet-check"
@@ -119,14 +115,14 @@ export function AppShell({ children, username, roleLabel, isStaff }: Props) {
         <main className="main" id="main" tabIndex={-1}>
           <header className="topbar">
             <div className="topbar-context">
-              <span className="topbar-eyebrow">PROOFPAY · PRIVATE WORKSPACE</span>
-              <span className="topbar-title">Stipend award workflow</span>
+              <span className="topbar-eyebrow">FUNDORA · PRIVATE WORKSPACE</span>
+              <span className="topbar-title">Community project funding</span>
             </div>
             <span className="topbar-role">{roleLabel ?? "TESTNET WORKSPACE"}</span>
           </header>
           {children}
           <p className="demo-label">
-            Simulated workshop · Testnet XLM has no real monetary value
+            Stellar Testnet · Testnet XLM has no real monetary value
           </p>
         </main>
       </div>

@@ -113,7 +113,7 @@ export async function GET(
   const headers = {
     "Cache-Control": "private, no-store",
     "X-Content-Type-Options": "nosniff",
-    "Content-Disposition": `attachment; filename="proofpay-${programId}.${format}"`,
+    "Content-Disposition": `attachment; filename="fundora-${programId}.${format}"`,
   };
 
   if (format === "json") {

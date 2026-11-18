@@ -1,3 +1,4 @@
+import { BrandLink } from "@/components/BrandLink";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeading } from "@/components/PageHeading";
@@ -56,12 +57,7 @@ export default async function LoginDoorPage({
         <div className="login-card">
           <section className="login-intro">
             <div>
-              <Link className="brand" href="/" aria-label="ProofPay home">
-                <span className="brand-mark" aria-hidden="true">P</span>
-                <span>
-                  ProofPay<span className="brand-period">.</span>
-                </span>
-              </Link>
+              <BrandLink href="/" />
               <p className="eyebrow">{meta.label} workspace</p>
               <PageHeading title={meta.label + " sign in"} lead={meta.explain} />
             </div>
