@@ -165,6 +165,30 @@ describe("sponsor register filters", () => {
   });
 });
 
+describe("workspace program selection", () => {
+  const verifier = { id: "verifier-program", role: "VERIFIER" };
+  const sponsor = { id: "sponsor-program", role: "SPONSOR" };
+  const recipient = { id: "recipient-program", role: "RECIPIENT" };
+
+  it("prefers a sponsor program when the request does not name one", () => {
+    expect(presentation.selectWorkspaceProgram([verifier, recipient, sponsor], "")).toEqual(
+      sponsor,
+    );
+  });
+
+  it("keeps an explicit verifier or recipient program", () => {
+    expect(presentation.selectWorkspaceProgram([sponsor, verifier], verifier.id)).toEqual(
+      verifier,
+    );
+    expect(presentation.selectWorkspaceProgram([recipient], "")).toEqual(recipient);
+  });
+
+  it("falls back to a sponsor program when the requested id is not a membership", () => {
+    expect(presentation.selectWorkspaceProgram([verifier, sponsor], "missing")).toEqual(sponsor);
+    expect(presentation.selectWorkspaceProgram([], "")).toBeNull();
+  });
+});
+
 describe("sponsor register confirmation and return navigation", () => {
   it("counts funding only when the award has a confirmed ledger", () => {
     expect(workspace.confirmedAwardStatusCounts!([

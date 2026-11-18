@@ -182,3 +182,16 @@ Branch: `codex/integrate-table-first-workspace`, based on `origin/dev` commit `6
 - NOT RUN: Testnet wallet signing or submission. No chain transaction, deployment or real wallet material was used.
 
 The full unit failure is outside this change. The browser blocker does not establish a pass or a product failure; it requires a local Docker runtime to run the isolated Supabase fixture. Task 6's outside usability, Testnet and staging gates remain separate and open.
+
+## Task 6 workspace fix checkpoint - 18 November 2026
+
+Working snapshot: branch `codex/integrate-table-first-workspace` after the sponsor-workspace review fixes. Host: Linux, Node v22.23.4, npm 10.9.9. Commands were run from `web/` unless noted. No Testnet transaction, deployment, or wallet material was used.
+
+- PASSED: `npm run typecheck` — `tsc --noEmit` completed with no errors.
+- PASSED: `npm run lint` — eslint reported 0 errors. Two pre-existing warnings remain: unused `router` in `components/WalletPanel.tsx` and an unused eslint-disable in `lib/db.ts`.
+- PASSED: `npm test` — Vitest 5.1.0, 26 files, 146 tests passed. This includes the sponsor-program selection checks and the wallet oracle comparison. The previous missing `static_src/wallet_validation.ts` failure is resolved by reading `web/lib/wallet/wallet_validation.oracle.ts`.
+- PASSED: `npm run build` — Next.js 16.4.6 compiled and generated the app route table.
+- PASSED: `git diff --check` from the repository root — no whitespace errors.
+- NOT RUN: Playwright browser assertions, including `web/e2e/workspace.spec.ts`. `npm run test:isolated` exited while starting Supabase. Docker 29.1.3 and Supabase CLI 3.2.0 were installed. `supabase start` failed during schema init with `DbSetupError: error running container: exit 1`. The one-shot migration process reported `DBConnection.ConnectionError` for `Realtime.Repo` after 14993ms. A separate check showed Docker bridge networking does not deliver traffic between containers (`pg_isready` to the database container IP returned no response), so the migration container cannot reach Postgres. The wrapper then stopped the containers. No browser assertion ran, and this does not establish a product failure.
+
+The register search field is an uncontrolled `defaultValue` so it stays editable. `/programs` without a program id prefers a sponsor membership and still honors an explicit verifier or recipient id. Award detail uses `formatTestnetXlm(AWARD_AMOUNT)`. Task 6's outside usability, Testnet, and staging gates remain open. OpenSpec task 4.3 stays unchecked until the browser walkthrough has evidence.

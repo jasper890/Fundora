@@ -25,3 +25,4 @@
 - [x] 4.1 Integrate the sponsor register and award detail hierarchy into `web/`, using the existing role-scoped server queries, presentation helpers, and action routes. Preserve the existing recipient and verifier flows and avoid changing transaction behavior.
 - [x] 4.2 Add focused presentation and browser coverage for the three sponsor views, row actions, confirmed funding summary, URL state restoration, unresolved payout after reload, held awards, and role-scoped entry points.
 - [ ] 4.3 Run web tests, typecheck, build, diff checks, and the local browser walkthrough. Record actual results and remaining limits in `docs/VERIFICATION.md`.
+  - 18 November 2026 follow-up: typecheck, lint, production build, `git diff --check`, and the Vitest suite passed. `npm run test:isolated` still does not reach Playwright on this host, so the browser walkthrough remains NOT RUN. See the workspace fix checkpoint in `docs/VERIFICATION.md`.

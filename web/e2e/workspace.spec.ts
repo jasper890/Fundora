@@ -4,40 +4,79 @@ import { expect, test } from "@playwright/test";
 import { requireIsolatedTestEnvironment } from "../lib/test-isolation";
 import { loginAs } from "./helpers";
 
+async function findCreatedSponsorAward(): Promise<{
+  id: string;
+  programId: string;
+  username: string;
+}> {
+  requireIsolatedTestEnvironment(process.env);
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) throw new Error("Missing isolated test database URL");
+  const db = postgres(databaseUrl, { prepare: false });
+  try {
+    const rows = await db`
+      select a.id, a.program_id, ru.username
+      from award a
+      join program_member sm on sm.id = a.sponsor_member_id
+      join app_user su on su.id = sm.user_id
+      join program_member rm on rm.id = a.recipient_member_id
+      join app_user ru on ru.id = rm.user_id
+      where su.username = 'demo-sponsor'
+        and sm.role = 'SPONSOR'
+        and sm.active = true
+        and rm.role = 'RECIPIENT'
+        and a.status = 'CREATED'
+      order by a.created_at, ru.username
+      limit 1
+    `;
+    const row = rows[0];
+    if (!row) throw new Error("A CREATED sponsor award is required");
+    return {
+      id: String(row.id),
+      programId: String(row.program_id),
+      username: String(row.username),
+    };
+  } finally {
+    await db.end({ timeout: 2 });
+  }
+}
+
 test("sponsor register filters preserve URL state and restore row focus", async ({ page }) => {
+  const created = await findCreatedSponsorAward();
   await loginAs(page, "sponsor", "demo-sponsor");
   const table = page.getByRole("table");
   await expect(table).toBeVisible();
-  const firstRow = table.getByRole("row").nth(1);
-  const participant = (await firstRow.getByRole("rowheader").innerText()).trim();
-  const initialOpen = page.locator("[data-award-open]:visible").first();
-  const awardId = await initialOpen.getAttribute("data-award-open");
-  expect(awardId).toBeTruthy();
 
   const search = page.getByRole("searchbox", {
     name: "Search participant, status, or next step",
   });
-  await search.fill(participant);
+  await page.getByLabel("Program").selectOption(created.programId);
+  await search.fill(created.username);
   await page.getByLabel("Status").selectOption("CREATED");
   await page.getByLabel("Sort").selectOption("participant");
   await page.getByRole("button", { name: "Apply filters" }).click();
   await expect(page).toHaveURL(/view=needs-action/);
-  await expect(search).toHaveValue(participant);
+  await expect(page).toHaveURL(new RegExp("program=" + created.programId));
+  await expect(search).toHaveValue(created.username);
   await expect(table.getByRole("row")).toHaveCount(2);
+  const createdRow = table.getByRole("row").nth(1);
+  await expect(createdRow.getByRole("rowheader")).toContainText(created.username);
+  await expect(createdRow).toContainText("Created");
 
   await page.getByRole("link", { name: /Awaiting review/ }).click();
   await expect(page).toHaveURL(/view=awaiting-review/);
-  await expect(search).toHaveValue(participant);
+  await expect(search).toHaveValue(created.username);
   await page.getByRole("link", { name: /All awards/ }).click();
   await expect(page).toHaveURL(/view=all-awards/);
-  await expect(search).toHaveValue(participant);
+  await expect(search).toHaveValue(created.username);
 
-  await page.locator(`[data-award-open="${awardId}"]:visible`).click();
-  await expect(page.getByRole("heading", { name: participant })).toBeVisible();
-  await page.getByRole("link", { name: /Award register/ }).click();
-  await expect(page).toHaveURL(new RegExp("focus=" + awardId));
+  await page.locator(`[data-award-open="${created.id}"]:visible`).click();
+  await expect(page.getByRole("heading", { name: created.username, level: 1 })).toBeVisible();
+  await expect(page.getByText("20 Testnet XLM - no real monetary value")).toBeVisible();
+  await page.getByRole("link", { name: /award register/i }).click();
+  await expect(page).toHaveURL(new RegExp("focus=" + created.id));
   await expect(
-    page.locator(`[data-award-open="${awardId}"]:visible`),
+    page.locator(`[data-award-open="${created.id}"]:visible`),
   ).toBeFocused();
 });
 

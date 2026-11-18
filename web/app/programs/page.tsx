@@ -13,6 +13,7 @@ import {
   homeCopy,
   nextStep,
   pickUpcomingAward,
+  selectWorkspaceProgram,
   sortAwardsForHome,
   statusLines,
   userActsNow,
@@ -63,10 +64,7 @@ export default async function ProgramsPage({
   try {
     programs = await listProgramsForUser(user.id);
     const requestedProgramId = queryValue(params.program);
-    selectedProgram =
-      programs.find((program) => program.id === requestedProgramId) ??
-      programs[0] ??
-      null;
+    selectedProgram = selectWorkspaceProgram(programs, requestedProgramId);
     awards =
       selectedProgram?.role === "SPONSOR"
         ? await listVisibleAwardsForUser(user, selectedProgram.id)

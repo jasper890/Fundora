@@ -13,6 +13,7 @@ import { loadEvidenceHistoryForUser } from "@/lib/awards/queries";
 import { sql } from "@/lib/db";
 import { isAwardVisible } from "@/lib/permissions";
 import {
+  formatTestnetXlm,
   nextStep,
   safeProgramReturnHref,
   statusLines,
@@ -20,7 +21,7 @@ import {
   userActsNow,
 } from "@/lib/presentation";
 import { requireSessionUser } from "@/lib/session";
-import type { AwardView, MemberView, Role } from "@/lib/types";
+import { AWARD_AMOUNT, type AwardView, type MemberView, type Role } from "@/lib/types";
 
 const singaporeDateTime = new Intl.DateTimeFormat("en-SG", {
   dateStyle: "medium",
@@ -287,7 +288,12 @@ export default async function AwardPage({
       </p>
       <PageHeading
         title={award.recipient_username}
-        lead={award.program_title + " - 20 Testnet XLM - no real monetary value"}
+        lead={
+          award.program_title +
+          " - " +
+          formatTestnetXlm(AWARD_AMOUNT) +
+          " Testnet XLM - no real monetary value"
+        }
       />
       <SmokeContext
         username={user.username}

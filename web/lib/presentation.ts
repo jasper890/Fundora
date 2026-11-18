@@ -503,6 +503,23 @@ export function confirmedAwardStatusCounts(
   return counts;
 }
 
+/**
+ * Choose the program shown at /programs.
+ * An explicit id wins, including verifier or recipient memberships.
+ * Otherwise prefer a sponsor membership so the register is reachable,
+ * and keep the existing list order for every other role.
+ */
+export function selectWorkspaceProgram<T extends { id: string; role: string }>(
+  programs: readonly T[],
+  requestedProgramId: string,
+): T | null {
+  if (requestedProgramId) {
+    const requested = programs.find((program) => program.id === requestedProgramId);
+    if (requested) return requested;
+  }
+  return programs.find((program) => program.role === "SPONSOR") ?? programs[0] ?? null;
+}
+
 export function safeProgramReturnHref(value: string | string[] | undefined): string {
   if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) {
     return "/programs";

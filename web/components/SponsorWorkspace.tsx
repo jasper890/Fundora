@@ -233,7 +233,12 @@ export function SponsorWorkspace({
           ))}
         </nav>
 
-        <form className="sponsor-register-filters" method="get" action="/programs">
+        <form
+          className="sponsor-register-filters"
+          method="get"
+          action="/programs"
+          key={JSON.stringify([program.id, view, filters.search, filters.status, filters.sort])}
+        >
           <label>
             <span>Program</span>
             <select name="program" defaultValue={program.id}>
@@ -247,7 +252,7 @@ export function SponsorWorkspace({
             <input
               type="search"
               name="q"
-              value={filters.search}
+              defaultValue={filters.search}
               maxLength={120}
               placeholder="Search awards"
             />
