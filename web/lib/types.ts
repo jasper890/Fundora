@@ -79,3 +79,6 @@ export const ACTIVE_OPS: OperationStatus[] = [
   "SUBMITTED",
   "UNKNOWN",
 ];
+
+/** Visible register row with the recipient's display label. */
+export type AwardListView = AwardView & { recipient_username: string };

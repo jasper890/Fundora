@@ -166,3 +166,32 @@ The Task 6 browser suite uses pinned development dependency Playwright 1.64.1 wi
 - NOT RUN: full Testnet funding/submission/approval/payout/duplicate/refund demo, controlled archive restoration/TTL extension, and demo video. The 12-address setup was explicitly deferred; no network writes were made.
 
 See [DEMO_RECORD.md](DEMO_RECORD.md) for clean local setup steps and the outside-tester scenario. Task 6 remains incomplete until the outside usability gate and the documented handoff requirements are actually met. Task 5 also remains incomplete without real evidence for its recovery and Testnet gates.
+
+## Task 6 Next.js workspace integration checkpoint - 18 November 2026
+
+Branch: `codex/integrate-table-first-workspace`, based on `origin/dev` commit `634ec19719269635c4e905676ddac3b4846b7008`. This integrates the sponsor register and award detail into `web/`; it does not alter signing, submission, reconciliation or contract behavior.
+
+- PASSED: `npm.cmd run typecheck` - TypeScript completed without errors.
+- PASSED: `npm.cmd run build` - Next.js 16.4.6 compiled and generated the app route table.
+- PASSED: `npm.cmd run lint` - no lint errors. Two pre-existing warnings remain in `components/WalletPanel.tsx` (unused `router`) and `lib/db.ts` (unused eslint-disable).
+- PASSED: `npm.cmd test -- tests/workspace.test.ts` - 7 tests passed for the three register views, counts, confirmed funding, search/status/sort, and safe return paths. The search helper was verified red then green.
+- FAILED (pre-existing): `npm.cmd test` - 142 passed, 1 failed. `tests/wallet-validation.test.ts` tries to read the absent `static_src/wallet_validation.ts`, removed by the earlier app cutover. The same failure occurred on the fetched baseline before this integration (135 passed, 1 failed).
+- PASSED: `git diff --check` - no whitespace errors.
+- BLOCKED before browser tests: `npm.cmd run test:isolated` exited while starting Supabase. The wrapper suppresses private CLI output; the Docker executable is unavailable in this environment. No listeners remained on the isolated test ports after the attempt. No browser assertions ran.
+- NOT RUN: browser walkthrough for sponsor register filters/focus, role routes, unknown payout after reload and hold state. Coverage is added in `web/e2e/workspace.spec.ts`; rerun with Docker available using `npm.cmd run test:isolated` from `web/`.
+- NOT RUN: Testnet wallet signing or submission. No chain transaction, deployment or real wallet material was used.
+
+The full unit failure is outside this change. The browser blocker does not establish a pass or a product failure; it requires a local Docker runtime to run the isolated Supabase fixture. Task 6's outside usability, Testnet and staging gates remain separate and open.
+
+## Task 6 workspace fix checkpoint - 18 November 2026
+
+Working snapshot: branch `codex/integrate-table-first-workspace` after the sponsor-workspace review fixes. Host: Linux, Node v22.23.4, npm 10.9.9. Commands were run from `web/` unless noted. No Testnet transaction, deployment, or wallet material was used.
+
+- PASSED: `npm run typecheck` — `tsc --noEmit` completed with no errors.
+- PASSED: `npm run lint` — eslint reported 0 errors. Two pre-existing warnings remain: unused `router` in `components/WalletPanel.tsx` and an unused eslint-disable in `lib/db.ts`.
+- PASSED: `npm test` — Vitest 5.1.0, 26 files, 146 tests passed. This includes the sponsor-program selection checks and the wallet oracle comparison. The previous missing `static_src/wallet_validation.ts` failure is resolved by reading `web/lib/wallet/wallet_validation.oracle.ts`.
+- PASSED: `npm run build` — Next.js 16.4.6 compiled and generated the app route table.
+- PASSED: `git diff --check` from the repository root — no whitespace errors.
+- NOT RUN: Playwright browser assertions, including `web/e2e/workspace.spec.ts`. `npm run test:isolated` exited while starting Supabase. Docker 29.1.3 and Supabase CLI 3.2.0 were installed. `supabase start` failed during schema init with `DbSetupError: error running container: exit 1`. The one-shot migration process reported `DBConnection.ConnectionError` for `Realtime.Repo` after 14993ms. A separate check showed Docker bridge networking does not deliver traffic between containers (`pg_isready` to the database container IP returned no response), so the migration container cannot reach Postgres. The wrapper then stopped the containers. No browser assertion ran, and this does not establish a product failure.
+
+The register search field is an uncontrolled `defaultValue` so it stays editable. `/programs` without a program id prefers a sponsor membership and still honors an explicit verifier or recipient id. Award detail uses `formatTestnetXlm(AWARD_AMOUNT)`. Task 6's outside usability, Testnet, and staging gates remain open. OpenSpec task 4.3 stays unchecked until the browser walkthrough has evidence.

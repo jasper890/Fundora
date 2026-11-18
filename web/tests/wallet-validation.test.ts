@@ -10,7 +10,7 @@ describe("wallet validation", () => {
       "utf8",
     );
     const oracle = readFileSync(
-      resolve(__dirname, "../../static_src/wallet_validation.ts"),
+      resolve(__dirname, "../lib/wallet/wallet_validation.oracle.ts"),
       "utf8",
     );
     // Function body semantics must match; whitespace may differ after TypeScript formatting.

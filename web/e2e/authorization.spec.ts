@@ -22,9 +22,9 @@ test("role doors, program detail and server authorization", async ({ page }) => 
   }
   await loginAs(page, "sponsor", "demo-sponsor");
   const awardHref = await page.locator('a[href^="/awards/"]').first().getAttribute("href");
-  expect(awardHref).toMatch(/\/awards\/[0-9a-f-]+$/);
-  const awardId = awardHref!.split("/").pop()!;
   const origin = new URL(page.url()).origin;
+  const awardId = new URL(awardHref!, origin).pathname.split("/").pop()!;
+  expect(awardId).toMatch(/^[0-9a-f-]+$/i);
   const bypass = await page.request.post(`/api/v1/awards/${awardId}/evidence/finalize`, {
     headers: { Origin: origin }, data: { reservation_id: crypto.randomUUID(), skip_storage: true, filenames: ["proof.jpg"] },
   });

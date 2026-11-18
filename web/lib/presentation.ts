@@ -2,6 +2,7 @@
  * Port of proofpay/presentation.py — display-only award copy.
  * Never writes to the database or prepares chain actions.
  */
+import { AWARD_AMOUNT } from "./types";
 import type {
   AwardStatus,
   AwardView,
@@ -348,4 +349,188 @@ export function trackerSteps(award: AwardView): TrackerStep[] {
     }
   }
   return steps;
+}
+
+export type SponsorWorkspaceView =
+  | "needs-action"
+  | "awaiting-review"
+  | "all-awards";
+
+export type ConfirmedFundingSummary = {
+  fundedAwards: number;
+  confirmedBaseUnits: number;
+  reservedBaseUnits: number;
+};
+
+export function selectSponsorWorkspaceAwards<T extends AwardView>(
+  awards: T[],
+  user: AppUser,
+  view: SponsorWorkspaceView,
+): T[] {
+  const ordered = sortAwardsForHome(awards, user) as T[];
+
+  if (view === "needs-action") {
+    return ordered.filter((award) => userActsNow(award, user));
+  }
+
+  if (view === "awaiting-review") {
+    return ordered.filter(
+      (award) =>
+        award.status === "SUBMITTED" &&
+        award.last_confirmed_ledger !== null &&
+        !award.sponsor_hold &&
+        !award.verifier_hold &&
+        !award.unresolved_operation &&
+        !award.verifier_sync_required &&
+        award.latest_evidence !== null &&
+        award.evidence_revision === award.latest_evidence.revision &&
+        award.evidence_digest === award.latest_evidence.digest &&
+        !userActsNow(award, user),
+    );
+  }
+
+  return ordered;
+}
+
+export function sponsorWorkspaceCounts(
+  awards: AwardView[],
+  user: AppUser,
+): Record<SponsorWorkspaceView, number> {
+  return {
+    "needs-action": selectSponsorWorkspaceAwards(awards, user, "needs-action").length,
+    "awaiting-review": selectSponsorWorkspaceAwards(awards, user, "awaiting-review").length,
+    "all-awards": awards.length,
+  };
+}
+
+export function confirmedFundingSummary(
+  counts: Partial<Record<AwardStatus, number>>,
+): ConfirmedFundingSummary {
+  const count = (status: AwardStatus) => counts[status] ?? 0;
+  const fundedAwards =
+    count("FUNDED") +
+    count("SUBMITTED") +
+    count("APPROVED") +
+    count("REJECTED") +
+    count("PAID") +
+    count("REFUNDED");
+  const reservedAwards =
+    count("FUNDED") +
+    count("SUBMITTED") +
+    count("APPROVED") +
+    count("REJECTED");
+
+  return {
+    fundedAwards,
+    confirmedBaseUnits: fundedAwards * AWARD_AMOUNT,
+    reservedBaseUnits: reservedAwards * AWARD_AMOUNT,
+  };
+}
+
+export function formatTestnetXlm(baseUnits: number): string {
+  if (!Number.isSafeInteger(baseUnits) || baseUnits < 0) {
+    throw new RangeError("Testnet XLM base units must be a nonnegative safe integer.");
+  }
+
+  const amount = BigInt(baseUnits);
+  const whole = amount / BigInt(10_000_000);
+  const fraction = (amount % BigInt(10_000_000))
+    .toString()
+    .padStart(7, "0")
+    .replace(/0+$/, "");
+
+  return fraction ? whole.toString() + "." + fraction : whole.toString();
+}
+export type SponsorRegisterStatus = "ALL" | "ON_HOLD" | "UNRESOLVED" | AwardStatus;
+export type SponsorRegisterSort = "priority" | "participant" | "status";
+export type SponsorRegisterFilters = {
+  search: string;
+  status: SponsorRegisterStatus;
+  sort: SponsorRegisterSort;
+};
+
+export function filterSponsorWorkspaceAwards<T extends AwardView & { recipient_username: string }>(
+  awards: T[],
+  filters: SponsorRegisterFilters,
+  user: AppUser,
+): T[] {
+  const search = filters.search.trim().toLocaleLowerCase();
+  const matching = awards.filter((award) => {
+    const statusMatches =
+      filters.status === "ALL" ||
+      (filters.status === "ON_HOLD"
+        ? award.sponsor_hold || award.verifier_hold
+        : filters.status === "UNRESOLVED"
+          ? award.unresolved_operation
+          : award.status === filters.status);
+    if (!statusMatches) return false;
+    if (!search) return true;
+    const searchable = [
+      award.recipient_username,
+      award.status,
+      ...statusLines(award),
+      nextStep(award, user),
+      award.sponsor_hold || award.verifier_hold ? "on hold" : "",
+      award.unresolved_operation ? "outcome not confirmed unresolved" : "",
+    ]
+      .join(" ")
+      .toLocaleLowerCase();
+    return searchable.includes(search);
+  });
+
+  if (filters.sort === "participant") {
+    return matching.slice().sort((first, second) =>
+      first.recipient_username.localeCompare(second.recipient_username),
+    );
+  }
+  if (filters.sort === "status") {
+    return matching.slice().sort((first, second) =>
+      first.status.localeCompare(second.status) ||
+      first.recipient_username.localeCompare(second.recipient_username),
+    );
+  }
+  return matching;
+}
+
+export function confirmedAwardStatusCounts(
+  awards: AwardView[],
+): Partial<Record<AwardStatus, number>> {
+  const counts: Partial<Record<AwardStatus, number>> = {};
+  for (const award of awards) {
+    if (award.last_confirmed_ledger === null) continue;
+    counts[award.status] = (counts[award.status] ?? 0) + 1;
+  }
+  return counts;
+}
+
+/**
+ * Choose the program shown at /programs.
+ * An explicit id wins, including verifier or recipient memberships.
+ * Otherwise prefer a sponsor membership so the register is reachable,
+ * and keep the existing list order for every other role.
+ */
+export function selectWorkspaceProgram<T extends { id: string; role: string }>(
+  programs: readonly T[],
+  requestedProgramId: string,
+): T | null {
+  if (requestedProgramId) {
+    const requested = programs.find((program) => program.id === requestedProgramId);
+    if (requested) return requested;
+  }
+  return programs.find((program) => program.role === "SPONSOR") ?? programs[0] ?? null;
+}
+
+export function safeProgramReturnHref(value: string | string[] | undefined): string {
+  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) {
+    return "/programs";
+  }
+  try {
+    const destination = new URL(value, "https://proofpay.invalid");
+    if (destination.origin !== "https://proofpay.invalid" || destination.pathname !== "/programs") {
+      return "/programs";
+    }
+    return destination.pathname + destination.search + destination.hash;
+  } catch {
+    return "/programs";
+  }
 }

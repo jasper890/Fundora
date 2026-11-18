@@ -1,4 +1,4 @@
-/** Byte-compatible port of static_src/wallet_validation.ts */
+/** Byte-compatible port of wallet_validation.oracle.ts */
 import { StrKey } from "@stellar/stellar-sdk";
 
 export function requireAssignedWallet(
