@@ -124,7 +124,7 @@ idle → preparing → beginning → uploading(n/3) → finalizing → done
 
 | Change | Where | Why |
 |---|---|---|
-| `POST /api/v1/session/login` with `"client": "mobile"`: same throttle and username mapping; returns `access_token`, `refresh_token`, `expires_at`; sets no cookies; an origin-less request is accepted only in this mode | `web/app/api/v1/session/login/route.ts` | Native login without bypassing the throttle (one route, no copy) |
+| `POST /api/v1/session/login` with `"client": "mobile"`: same throttle and username mapping; an origin-less request returns `access_token`, `refresh_token`, `expires_at` and sets no cookies; a request that sends `Origin` keeps the cookie session; an origin-less request is accepted only in this mode | `web/app/api/v1/session/login/route.ts` | Native login without bypassing the throttle (one route, no copy) |
 | `bearerToken(request)`: honored only when `MOBILE_BEARER_AUTH=1`, there is no `Cookie` header, and the header is `Authorization: Bearer …`; `requireSameOrigin` accepts such requests without `Origin` | `web/lib/http.ts` | CSRF needs ambient cookies; a cookie request keeps the strict check |
 | `getRequestAuthUser(request)` and `createSupabaseTokenClient()` | `web/lib/supabase/server.ts` | One auth entry point for bearer or cookie |
 | Bearer accepted on: session GET, awards list/detail, evidence begin/finalize/cancel/download, review POST, operation status, open operations | those route files | Only what the app calls; prepare/submit/abandon/export/admin/password stay cookie-only |

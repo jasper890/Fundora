@@ -22,7 +22,7 @@ const Body = z
 
 export async function POST(request: Request) {
   const parsed = Body.safeParse(await request.json().catch(() => null));
-  // A native-app login sets no cookies, so a missing Origin cannot be a CSRF vector.
+  // Body tokens only on this path. A browser Origin keeps the cookie session, or is refused when it mismatches.
   const nativeLogin =
     parsed.success &&
     parsed.data.client === "mobile" &&
@@ -100,8 +100,7 @@ export async function POST(request: Request) {
     return jsonError("INVALID_LOGIN", 400, INVALID_LOGIN_MESSAGE);
   }
 
-  const mobile = parsed.data.client === "mobile" && process.env.MOBILE_BEARER_AUTH === "1";
-  const supabase = mobile ? createSupabaseTokenClient() : await createSupabaseServerClient();
+  const supabase = nativeLogin ? createSupabaseTokenClient() : await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password: parsed.data.password,
@@ -124,7 +123,7 @@ export async function POST(request: Request) {
     authenticated: true,
     username: user.username,
     password_change_required: user.must_change_password,
-    ...(mobile && data.session
+    ...(nativeLogin && data.session
       ? {
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token,

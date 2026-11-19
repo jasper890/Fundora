@@ -66,6 +66,18 @@ describe("mobile login", () => {
     expect(mocks.tokenSignIn).not.toHaveBeenCalled();
   });
 
+  it("keeps the cookie session when a same-origin browser claims client mobile and the flag is on", async () => {
+    const response = await login({ client: "mobile" }, { Origin: "https://proofpay.test" });
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({ authenticated: true, username: "recipient01" });
+    expect(body).not.toHaveProperty("access_token");
+    expect(body).not.toHaveProperty("refresh_token");
+    expect(body).not.toHaveProperty("expires_at");
+    expect(mocks.cookieSignIn).toHaveBeenCalledOnce();
+    expect(mocks.tokenSignIn).not.toHaveBeenCalled();
+  });
+
   it("rejects origin-less logins that are not native, or when the kill switch is off", async () => {
     expect((await login({})).status).toBe(403);
     delete process.env.MOBILE_BEARER_AUTH;
@@ -81,7 +93,11 @@ describe("mobile login", () => {
     expect(mocks.tokenSignIn).not.toHaveBeenCalled();
   });
 
-  it("rejects a cross-site Origin even in mobile mode", async () => {
-    expect((await login({ client: "mobile" }, { Origin: "https://attacker.test" })).status).toBe(403);
+  it("rejects a cross-site Origin even in mobile mode and does not return tokens", async () => {
+    const response = await login({ client: "mobile" }, { Origin: "https://attacker.test" });
+    expect(response.status).toBe(403);
+    expect(await response.json()).not.toHaveProperty("access_token");
+    expect(mocks.tokenSignIn).not.toHaveBeenCalled();
+    expect(mocks.cookieSignIn).not.toHaveBeenCalled();
   });
 });
