@@ -1,0 +1,2 @@
+# EAS runs shell hooks on Linux; keep LF even on Windows checkouts.
+*.sh text eol=lf
