@@ -86,3 +86,53 @@ jobs:
 
       - name: Award contract tests
         run: cargo test --manifest-path contracts/award/Cargo.toml --locked
+
+  mobile:
+    name: mobile
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reject committed local secrets
+        working-directory: .
+        run: |
+          if ls mobile/.env*.local >/dev/null 2>&1; then
+            echo "::error::Committed mobile .env.local is not allowed"
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test -- --ci
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: mobile/modules/fundora-signer/rust -> target
+
+      # Key generation and every signing check for the phone wallet (ADR-0003).
+      - name: Wallet signer tests (Rust)
+        run: npm run test:rust

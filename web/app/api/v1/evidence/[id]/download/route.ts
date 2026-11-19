@@ -2,7 +2,7 @@ import { sql } from "@/lib/db";
 import { jsonError, requireSameOrigin } from "@/lib/http";
 import { isAwardVisible } from "@/lib/permissions";
 import { loadAppUserByAuthId } from "@/lib/awards/queries";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getRequestAuthUser } from "@/lib/supabase/server";
 import { createEvidenceDownloadUrl } from "@/lib/evidence/storage";
 import type { AwardView, MemberView, Role } from "@/lib/types";
 import { NextResponse } from "next/server";
@@ -14,10 +14,7 @@ export async function GET(
   if (!requireSameOrigin(request)) return jsonError("ORIGIN_MISMATCH", 403);
   const { id: fileId } = await context.params;
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestAuthUser(request);
   if (!user) return jsonError("UNAUTHENTICATED", 401);
   const appUser = await loadAppUserByAuthId(user.id);
   if (!appUser) return jsonError("UNAUTHENTICATED", 401);

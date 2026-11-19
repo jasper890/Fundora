@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => {
   return { query, tx, begin: vi.fn((fn) => fn(tx)), getUser: vi.fn(), actor: vi.fn(), download: vi.fn(), remove: vi.fn() };
 });
 vi.mock("@/lib/db", () => ({ sql: () => Object.assign(mocks.query, { begin: mocks.begin }) }));
-vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: async () => ({ auth: { getUser: mocks.getUser } }) }));
+vi.mock("@/lib/supabase/server", () => ({ getRequestAuthUser: async () => (await mocks.getUser()).data.user }));
 vi.mock("@/lib/awards/queries", () => ({ loadAppUserByAuthId: mocks.actor }));
 vi.mock("@/lib/evidence/storage", () => ({ downloadEvidenceObject: mocks.download, deleteEvidenceObjects: mocks.remove }));
 import { POST } from "@/app/api/v1/awards/[id]/evidence/finalize/route";

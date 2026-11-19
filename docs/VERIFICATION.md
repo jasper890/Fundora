@@ -202,3 +202,66 @@ The register search field is an uncontrolled `defaultValue` so it stays editable
 - The landing and sponsor sign-in pages loaded the Fundora logo and favicon at 390 and 1440 pixels. Workspace overflow and keyboard checks passed at the suite's four viewport widths.
 - Vercel project `proofpay-preview` was renamed to `fundora` in place. The existing preview URL still returned HTTP 200 and serves its prior deployment. The `fundora.vercel.app` hostname was already serving a different deployment and is outside this project's assigned domains.
 - Live Freighter and Testnet transactions were outside this checkpoint.
+
+## Mobile app checkpoint — 19 November 2026
+
+- Scope: ADR-0002 (Testnet-only Expo client) and ADR-0003 (built-in Testnet wallet). Plan and roadmap: `docs/mobile/`.
+- PASSED (`web/`): `npx vitest run` — 168 tests in 30 files, including the new bearer, mobile-login, token-refresh, award-route and `getRequestAuthUser` tests. `npx tsc --noEmit` clean. `npx next build` compiled, with `/api/v1/awards` and `/api/v1/awards/[id]` in the route table. ESLint: 0 errors, the two warnings that already existed.
+- Independent review (subagent) of the web changes found no high-severity issues. Fixed: login returned tokens for `client:"mobile"` with the kill switch off (medium); `myRoles` ignored active/role/sync; latest evidence counted purged versions; detail route 500 on a vanished row. Untested-helper gap closed with `tests/requestAuthUser.test.ts`.
+- PASSED (`mobile/`, Expo SDK 58): `npx tsc --noEmit`; `npx expo lint` 0 problems; `npx jest` 18 tests in 6 files (amount, status, date and time left, next step, evidence rules incl. EXIF detection, upload pipeline); `npx expo-doctor` 20/20; `npx expo export --platform android` produced a Hermes bundle.
+- Independent review (subagent) of the mobile app: fixed 4 high (evidence download used the version id; FileSystem move/copy/write were not awaited; `dateStyle` + `timeZoneName` throws; any 401 deleted drafts), 4 medium (privacy cover under native modals and content flash; picker/PDF/viewed copies left on disk; PDF name collisions; sign-out waited on the network) and most low items. The app no longer needs a Supabase URL or key: new `POST /api/v1/session/refresh`.
+- EAS: project `@jasperngo890/fundora` linked; preview env vars set (public URLs only); preview Android APK build `33573e43` FINISHED 19 Nov 2026 (points at the hosted preview, which does not yet run these web changes). UI fixes below landed after that build.
+- PASSED (Pixel 9a emulator, Expo Go, local Next.js + local Supabase with `MOBILE_BEARER_AUTH=1`, synthetic seed; one award set FUNDED with a ledger value directly in the local DB): mobile login; award list/detail; camera capture → begin 200 → signed Storage PUT → finalize 200 (revision 1); stored JPEG has 0 EXIF tags and no GPS block; draft restored after app reload; session kept after reload; another recipient's download 404, no token 401; screenshots blocked on the evidence screen (FLAG_SECURE); verifier lands on Reviews; dark mode readable. Screenshots: `docs/mobile/screenshots/`.
+- Found and fixed on the emulator: banner under the status bar on header-less screens; `last_confirmed_ledger` arrives as a string (schema now accepts it); plus UX changes (Next step card, time left on deadlines, one primary button on the evidence screen, compact Remove, KB sizes, sign-out confirmation, verifier landing on Reviews, branded sign-in).
+- NOT RUN: Playwright/Supabase isolated suite for this change, a physical phone, the Maestro flows, EXIF/GPS check on a real GPS-tagged phone photo, iOS. The hosted preview does not have these web changes or `MOBILE_BEARER_AUTH=1`.
+
+## Built-in Testnet wallet checkpoint (ADR-0003) — 19 November 2026
+
+- PASSED (`mobile/`): `npx tsc --noEmit`; `npx expo lint` 0 problems; `npx jest` 25 tests in 7 files. The wallet tests build real Soroban envelopes. They check that the expected `submit`, `approve` or `pay` call is signed with a valid ed25519 signature. They also check that the app refuses:
+  - the Public network, a foreign source account or a signer mismatch;
+  - web-only actions and wrong methods;
+  - extra operations;
+  - auth for another contract or method, or nested authorizations;
+  - a fee that differs from the preview or is too high;
+  - a missing or long expiry. The next-step tests now cover the submission, review and payout deadlines and ownership of an open transaction. `npx expo export --platform android` bundled `@stellar/stellar-sdk/base` for Hermes.
+- PASSED (`web/`): the prepare, submit and abandon routes accept the mobile bearer session. `/api/v1/session` returns `public_wallet`. `/api/v1/awards` and `/api/v1/awards/[id]` return the program deadlines and `my_open_operation`. Vitest covers the route merge.
+- PASSED (`contracts/award`): with Rust 1.100 installed, `cargo test` passed 28 tests.
+- PASSED on the Pixel 9a emulator (Expo Go, local Next.js with FakeRpc, local Supabase), with a PIN and an enrolled emulator fingerprint:
+  - Create wallet showed a biometric prompt and produced a `G…` address.
+  - "Get Testnet XLM" funded it with 10,000 XLM from the public Friendbot. The balance was read from Horizon Testnet.
+  - The address was set on `demo-recipient-01`'s membership directly in the local DB, standing in for the admin.
+  - Sign submission went through prepare, preview (signer = phone wallet), fingerprint and submit, ending in CONFIRMED_SUCCESS. The award became SUBMITTED, and `chain_operation.signer` is the phone address.
+- Independent reviews (subagents): a product review (46 items) and a security review. The security review's high item was fixed: the phone signed any envelope from its own address, and now checks the call (see ADR-0003, decision 3). Also fixed:
+  - A wallet with an address but no key now explains how to recover.
+  - "Try again" uses a fresh idempotency key and reloads the award.
+  - A double tap or closing the screen mid-sign is handled.
+  - The wallet address is stored device-only.
+  - The biometric wording is corrected.
+  Product fixes: deadline-aware and owner-aware next steps, a wallet-mismatch notice before Approve or Sign, the payment preview shows the recipient wallet, plain-language errors, an unsigned preparation is cancelled when its screen closes, no-backup warnings, and web wording for deadlines, refunds and rejections.
+- Test-setup note: the award had been set to FUNDED by hand earlier, without a `contract_id`. Prepare correctly refused with `DEPLOYMENT_UNAVAILABLE` until a placeholder contract id was set (FakeRpc only).
+- NOT RUN: signing a live Testnet Soroban envelope on a device (only FakeRpc ran on the emulator, which returns `SIGNED-<xdr>` after unlock), APPROVE and PAY on the emulator, iOS, a physical phone, and biometric re-enrollment (which invalidates the key).
+
+
+## Rust wallet signer and visible review notes — 19 November 2026
+
+- Notes:
+  - PASSED (`web/`): Vitest 168 tests (the route tests now cover `notes` and `changes_requested`), `tsc` and ESLint clean.
+  - PASSED live on local Supabase: demo-verifier sent a REQUEST_CHANGES note on a SUBMITTED award (201). demo-recipient-01 then saw it in `GET /api/v1/awards/<id>` with `changes_requested: true`, in the list flag, and on the website award page under "Change requests and disputes". demo-recipient-02 got 404 for the award.
+- Rust signer (`mobile/modules/fundora-signer/rust`, Rust 1.100):
+  - PASSED: `npm run test:rust`, 10 tests. They cover key generation, valid signatures for `submit`, `approve` and `pay`, and each refusal: network, source, wallet, web-only action, method, extra operation, foreign, other-method and nested auth, fee, expiry, bad key or envelope.
+  - PASSED: a fixture envelope built by the website's `@stellar/stellar-sdk` 17.4 matches the Rust-built envelope byte for byte and has the same Testnet hash.
+  - PASSED: the JavaScript SDK verified a Rust signature over that envelope.
+- App (`mobile/`):
+  - PASSED: `tsc`, `expo lint` and Jest 23 tests. The wallet tests mock the native module: unlock first, wallet match, the Rust result passed through unchanged, and FakeRpc still unlocks.
+  - `@stellar/stellar-sdk` is removed from the app.
+- Android dev build: `npx expo run:android` compiled `libfundora_signer.so` through `cargo-ndk` for arm64-v8a and x86_64, and installed `com.fundora.app` on the Pixel 9a emulator.
+  - The first two attempts failed in `react-native-worklets` because Ninja 1.10 (CMake 3.22) cannot create paths over 260 characters on Windows. Installing SDK CMake 3.31.6 (Ninja 1.12) and setting `cmake.dir` in the generated `android/local.properties` fixed it. That file is regenerated by prebuild, so note this for other Windows machines.
+- PASSED on the emulator (dev build, local Next.js with FakeRpc, local Supabase):
+  - The recipient sees "Changes requested. Read the note, then add a new evidence revision." with the verifier's note, and the "Change requests and disputes" section.
+  - Create wallet ran Rust `generate()` after a fingerprint prompt. The new `G…` address was funded by the public Testnet Friendbot with 10,000 XLM, so Stellar accepted the Rust-generated key.
+  - A real Soroban envelope was staged as an open operation (preview mode `live`):
+    - With no Testnet XLM, signing was disabled.
+    - With a 60000 fee against a 50000 preview, Rust refused: "The network fee does not match the preview. Nothing was signed."
+    - With a 30-minute expiry, Rust refused: "The transaction has no short expiry."
+    - With a valid 5-minute envelope, Rust signed it and the app posted it to `/submit`. The local server answered 409 `MODE_MISMATCH` (it only accepts FakeRpc placeholders), which shows the signature reached the server.
+- NOT RUN: an EAS cloud build with the Rust hook, a live Testnet submission of a Rust-signed transaction, iOS.

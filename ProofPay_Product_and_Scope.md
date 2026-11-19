@@ -48,7 +48,9 @@ Happy path:
 
 Included: account login, program-scoped permissions, three role dashboards, private evidence upload/download, one completion condition per award, evidence revisions before approval, explicit review and rejection, two-party payment authorization, holds, verifier replacement, expiry recovery, a readable audit trail, JSON/CSV export, transaction reconciliation, contract and application tests, and reproducible Testnet demo instructions.
 
-Excluded: AI, automatic evidence authenticity decisions, Mainnet, real money, fiat cash-out, SMS, passkeys/embedded wallets, sponsored fees, merchant vouchers, multi-party quorum approval, a general rules builder, public crowdfunding, mobile apps, multi-organization SaaS tenancy and insurance. Basic wallet signing is an acceptable business-role UX for this technical demo; future mainstream onboarding is not claimed solved.
+Excluded: AI, automatic evidence authenticity decisions, Mainnet, real money, fiat cash-out, SMS, passkeys/embedded wallets (except the Testnet-only phone wallet in [ADR-0003](docs/decisions/0003-built-in-testnet-wallet.md)), sponsored fees, merchant vouchers, multi-party quorum approval, a general rules builder, public crowdfunding, multi-organization SaaS tenancy and insurance. Basic wallet signing is an acceptable business-role UX for this technical demo; future mainstream onboarding is not claimed solved.
+
+**Mobile (added 19 Nov 2026, [ADR-0002](docs/decisions/0002-expo-mobile-client.md)):** a Testnet-only Expo client in `mobile/` that puts recipients first: sign in, view awards, capture or pick evidence, request changes or a dispute. It can create a Testnet-only wallet whose secret key stays in the phone's secure storage ([ADR-0003](docs/decisions/0003-built-in-testnet-wallet.md)). The phone signs SUBMIT, APPROVE and PAY; deployment, funding, holds, rejection, reopening, verifier replacement and refunds stay on the web.
 
 **No services or contracts are deployed by this documentation task.** Test fixtures and deployment scripts are future deliverables, not evidence of completed work.
 

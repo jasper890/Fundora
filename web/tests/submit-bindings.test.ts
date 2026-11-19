@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ query: vi.fn(), auth: vi.fn(), actor: vi.fn(), apply: vi.fn() }));
 vi.mock("@/lib/db", () => ({ sql: () => ({ begin: (fn: (tx: typeof mocks.query) => unknown) => fn(mocks.query) }) }));
-vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: async () => ({ auth: { getUser: mocks.auth } }) }));
+vi.mock("@/lib/supabase/server", () => ({ getRequestAuthUser: async () => (await mocks.auth()).data.user }));
 vi.mock("@/lib/awards/queries", () => ({ loadAppUserByAuthId: mocks.actor }));
 vi.mock("@/lib/chain/gateway", () => ({ isFakeRpc: () => true }));
 vi.mock("@/lib/chain/live", () => ({ LiveRpc: class {} }));

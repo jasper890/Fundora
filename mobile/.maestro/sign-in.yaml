@@ -1,0 +1,15 @@
+# Run: maestro test -e USERNAME=demo-recipient-01 -e PASSWORD=<seed password> .maestro/sign-in.yaml
+appId: com.fundora.app
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Testnet XLM — no real monetary value"
+- tapOn: "Username"
+- inputText: ${USERNAME}
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+- tapOn:
+    text: "Sign in"
+    index: 1
+- assertVisible: "Awards"
+- assertVisible: "Testnet XLM — no real monetary value"

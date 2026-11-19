@@ -3,7 +3,7 @@ import { sql } from "@/lib/db";
 import { jsonError, jsonOk, requireSameOrigin } from "@/lib/http";
 import { loadAppUserByAuthId } from "@/lib/awards/queries";
 import { canReadOperationStatus } from "@/lib/permissions";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getRequestAuthUser } from "@/lib/supabase/server";
 
 export async function GET(
   request: Request,
@@ -12,10 +12,7 @@ export async function GET(
   if (!requireSameOrigin(request)) return jsonError("ORIGIN_MISMATCH", 403);
   const { id } = await context.params;
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestAuthUser(request);
   if (!user) return jsonError("UNAUTHENTICATED", 401);
   const appUser = await loadAppUserByAuthId(user.id);
   if (!appUser) return jsonError("UNAUTHENTICATED", 401);

@@ -28,9 +28,21 @@ export function jsonOk<T>(body: T, status = 200) {
   });
 }
 
+/**
+ * Native-app access token. Only honored when the request carries no cookies:
+ * CSRF needs ambient cookie credentials, so a bearer-only request cannot be forged cross-site.
+ */
+export function bearerToken(request: Request): string | null {
+  if (process.env.MOBILE_BEARER_AUTH !== "1") return null;
+  if (request.headers.has("cookie")) return null;
+  const match = /^Bearer (\S+)$/.exec(request.headers.get("authorization") ?? "");
+  return match ? match[1] : null;
+}
+
 export function requireSameOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
   if (!origin) {
+    if (bearerToken(request)) return true;
     return ["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase());
   }
   const url = new URL(request.url);

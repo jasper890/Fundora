@@ -3,7 +3,7 @@ import { sql } from "@/lib/db";
 import { jsonError, jsonOk, requireSameOrigin } from "@/lib/http";
 import { PermissionDeniedError, requireAwardRole } from "@/lib/permissions";
 import { loadAppUserByAuthId } from "@/lib/awards/queries";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getRequestAuthUser } from "@/lib/supabase/server";
 import type { MemberView } from "@/lib/types";
 import { validateEvidenceFilename } from "@/lib/evidence/validate";
 import { createEvidenceUploadTokens, deleteEvidenceObjects } from "@/lib/evidence/storage";
@@ -37,10 +37,7 @@ export async function POST(
     }
   }
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestAuthUser(request);
   if (!user) return jsonError("UNAUTHENTICATED", 401);
   const appUser = await loadAppUserByAuthId(user.id);
   if (!appUser) return jsonError("UNAUTHENTICATED", 401);
@@ -156,8 +153,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
   const body = z.object({ reservation_id: z.string().uuid() }).strict().safeParse(await request.json().catch(() => null));
   if (!body.success) return jsonError("INVALID_BODY", 400);
   const { id } = await context.params;
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getRequestAuthUser(request);
   const actor = user && await loadAppUserByAuthId(user.id);
   if (!actor?.is_active) return jsonError("UNAUTHENTICATED", 401);
   const db = sql();
