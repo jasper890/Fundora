@@ -79,7 +79,7 @@ export async function listVisibleAwardsForUser(
     join app_user ru on ru.id = rm.user_id
     left join lateral (
       select revision, digest from evidence_version
-      where award_id = a.id
+      where award_id = a.id and purged_at is null
       order by revision desc
       limit 1
     ) ev on true
@@ -156,6 +156,27 @@ export async function listVisibleAwardsForUser(
         : { revision: row.latest_revision, digest: row.latest_digest },
     unresolved_operation: row.unresolved,
   }));
+}
+
+/** Roles the user currently holds on this award, under the same rules as the visibility query. */
+export function myRoles(
+  award: {
+    sponsor_member: { user_id: string; role?: string; active?: boolean };
+    verifier_member: { user_id: string; role?: string; active?: boolean };
+    recipient_member: { user_id: string; role?: string; active?: boolean };
+    verifier_sync_required?: boolean;
+  },
+  userId: string,
+): Role[] {
+  return (["SPONSOR", "VERIFIER", "RECIPIENT"] as const).filter((role) => {
+    const member = award[`${role.toLowerCase() as "sponsor" | "verifier" | "recipient"}_member`];
+    return (
+      member.user_id === userId &&
+      member.role === role &&
+      member.active === true &&
+      !(role === "VERIFIER" && award.verifier_sync_required)
+    );
+  });
 }
 
 export type EvidenceHistoryFile = {
@@ -245,4 +266,102 @@ export async function loadEvidenceHistoryForUser(
     }
   }
   return [...versions.values()];
+}
+
+export type AwardMobileContext = {
+  deadlines: { claim: string; review: string; payout: string };
+  my_open_operation: boolean;
+  changes_requested: boolean;
+};
+
+/**
+ * What the mobile next step needs beyond AwardListView, per award: program deadlines, whether this user owns an
+ * unfinished chain operation, and whether the verifier requested changes on the latest evidence revision.
+ */
+export async function loadAwardMobileContext(
+  awardIds: string[],
+  userId: string,
+): Promise<Map<string, AwardMobileContext>> {
+  if (awardIds.length === 0) return new Map();
+  const db = sql();
+  const rows = (await db`
+    select a.id, p.claim_deadline, p.review_deadline, p.payout_deadline,
+      exists(
+        select 1 from chain_operation co
+        where co.award_id = a.id and co.actor_id = ${userId}
+          and co.status in ('BUILDING','PREPARED','SIGNED','SUBMITTED','UNKNOWN')
+      ) as my_open,
+      exists(
+        select 1 from review_action ra
+        join evidence_version ev on ev.id = ra.evidence_id
+        where ra.award_id = a.id and ra.action = 'REQUEST_CHANGES'
+          and ev.revision = (
+            select max(e2.revision) from evidence_version e2 where e2.award_id = a.id and e2.purged_at is null
+          )
+      ) as changes_requested
+    from award a
+    join program p on p.id = a.program_id
+    where a.id in ${db(awardIds)}
+  `) as unknown as { id: string; claim_deadline: Date; review_deadline: Date; payout_deadline: Date; my_open: boolean; changes_requested: boolean }[];
+  return new Map(rows.map((row) => [row.id, {
+    deadlines: {
+      claim: new Date(row.claim_deadline).toISOString(),
+      review: new Date(row.review_deadline).toISOString(),
+      payout: new Date(row.payout_deadline).toISOString(),
+    },
+    my_open_operation: row.my_open,
+    changes_requested: row.changes_requested,
+  }]));
+}
+
+export type ReviewNote = {
+  id: string;
+  kind: "REQUEST_CHANGES" | "DISPUTE";
+  note: string;
+  source_check: string;
+  evidence_revision: number;
+  author_username: string;
+  created_at: string;
+};
+
+/** Change requests and disputes on an award, newest first, for the award's own active members only. */
+export async function loadReviewNotesForUser(awardId: string, user: AppUser): Promise<ReviewNote[]> {
+  if (!user.is_active) return [];
+  const db = sql();
+  const rows = (await db`
+    select ra.id, ra.action, ra.rationale, ra.source_check_method, ra.created_at,
+      ev.revision as evidence_revision, u.username as author_username
+    from review_action ra
+    join evidence_version ev on ev.id = ra.evidence_id
+    join app_user u on u.id = ra.verifier_id
+    join award a on a.id = ra.award_id
+    join program_member sm on sm.id = a.sponsor_member_id
+    join program_member vm on vm.id = a.verifier_member_id
+    join program_member rm on rm.id = a.recipient_member_id
+    where ra.award_id = ${awardId}
+      and ra.action in ('REQUEST_CHANGES', 'DISPUTE')
+      and (
+        (sm.user_id = ${user.id} and sm.role = 'SPONSOR' and sm.active)
+        or (vm.user_id = ${user.id} and vm.role = 'VERIFIER' and vm.active and a.verifier_sync_required = false)
+        or (rm.user_id = ${user.id} and rm.role = 'RECIPIENT' and rm.active)
+      )
+    order by ra.created_at desc, ra.id
+  `) as unknown as {
+    id: string;
+    action: ReviewNote["kind"];
+    rationale: string;
+    source_check_method: string;
+    created_at: Date | string;
+    evidence_revision: number;
+    author_username: string;
+  }[];
+  return rows.map((row) => ({
+    id: row.id,
+    kind: row.action,
+    note: row.rationale,
+    source_check: row.source_check_method,
+    evidence_revision: Number(row.evidence_revision),
+    author_username: row.author_username,
+    created_at: new Date(row.created_at).toISOString(),
+  }));
 }

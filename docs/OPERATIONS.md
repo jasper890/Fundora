@@ -116,3 +116,9 @@ Never commit `.env.local`, service-role keys, wallet secrets, or personal eviden
 ## Django rollback
 
 Product Django packages were removed in Phase 10. Full restore: `git checkout django-final`. Archived golden test sources: `oracle/django-tests/`.
+
+## Mobile app (Expo, added 19 Nov 2026)
+
+- Server switch: `MOBILE_BEARER_AUTH=1` enables cookie-less bearer requests and mobile login ([HTTP interfaces](HTTP_INTERFACES.md#mobile-app-access-19-nov-2026-adr-0002)). Set it to `0` to cut off every phone client immediately without a deploy of the app.
+- App setup, checks, EAS profiles and versioning: [mobile/README.md](../mobile/README.md). EAS project `@jasperngo890/fundora` is linked; no build, update, or store submission has been run.
+- Authorization still required for: EAS builds that consume plan credits beyond the free tier, store submission, and push notifications.

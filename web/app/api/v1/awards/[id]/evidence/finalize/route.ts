@@ -3,7 +3,7 @@ import { z } from "zod";
 import { sql } from "@/lib/db";
 import { jsonError, jsonOk, requireSameOrigin } from "@/lib/http";
 import { loadAppUserByAuthId } from "@/lib/awards/queries";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getRequestAuthUser } from "@/lib/supabase/server";
 import { EVIDENCE_TYPE_ERROR, validateEvidenceBytes, validateEvidenceFilename } from "@/lib/evidence/validate";
 import { canonicalManifest, sha256Hex } from "@/lib/evidence/manifest";
 import { deleteEvidenceObjects, downloadEvidenceObject } from "@/lib/evidence/storage";
@@ -15,8 +15,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const { id } = await context.params;
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return jsonError("INVALID_BODY", 400);
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getRequestAuthUser(request);
   const actor = user && await loadAppUserByAuthId(user.id);
   if (!actor?.is_active) return jsonError("UNAUTHENTICATED", 401);
   const db = sql();

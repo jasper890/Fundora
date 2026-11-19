@@ -19,4 +19,6 @@ Use [the OpenSpec workflow](docs/OPENSPEC.md) to track the existing six tasks. O
 
 For UI tooling and design references, read [UI design tooling](docs/UI_DESIGN_TOOLING.md). The vendored daisyUI skill applies to Tailwind/daisyUI work; the current app has no daisyUI runtime, so do not add daisyUI classes until that runtime is intentionally installed. For this web app, use Apple's Human Interface Guidelines as design reference only; do not use Apple UI Kit assets in web mockups or product code.
 
+**Mobile (approved 19 Nov 2026, ADR-0002):** [docs/mobile/MOBILE_APP_PLAN.md](docs/mobile/MOBILE_APP_PLAN.md) and the phase-gated [docs/mobile/AGENT_ROADMAP.md](docs/mobile/AGENT_ROADMAP.md). App code lives in `mobile/`.
+
 For conflicts, use the document ownership rules in the engineering standard. Ask only when a genuine unresolved conflict changes behavior or authorized scope.

@@ -9,7 +9,7 @@ import { constructorManifest } from "@/lib/chain/manifest";
 import { sql } from "@/lib/db";
 import { jsonError, jsonOk, requireSameOrigin } from "@/lib/http";
 import { PermissionDeniedError, requireAwardRole } from "@/lib/permissions";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getRequestAuthUser } from "@/lib/supabase/server";
 import { loadAppUserByAuthId } from "@/lib/awards/queries";
 import type { AppUser, AwardStatus, MemberView, Role } from "@/lib/types";
 import type { AwardSnapshot, PreparedEnvelope } from "@/lib/chain/rpc";
@@ -319,8 +319,7 @@ export async function POST(
   const resolvedAction = actionName === "PAYOUT" ? "PAY" : actionName;
   if (!Object.hasOwn(ROLES, resolvedAction)) return jsonError("INVALID_ACTION", 400);
 
-  const supabase = await createSupabaseServerClient();
-  const { data: { user: authUser } } = await supabase.auth.getUser();
+  const authUser = await getRequestAuthUser(request);
   if (!authUser) return jsonError("UNAUTHENTICATED", 401);
   const appUser = await loadAppUserByAuthId(authUser.id);
   if (!appUser) return jsonError("UNAUTHENTICATED", 401);

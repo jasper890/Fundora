@@ -8,22 +8,29 @@ import {
   THROTTLED_MESSAGE,
 } from "@/lib/auth/throttle";
 import { clientIp, jsonError, jsonOk, requireSameOrigin } from "@/lib/http";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseTokenClient } from "@/lib/supabase/server";
 import { sql } from "@/lib/db";
 
 const Body = z
   .object({
     username: z.string().min(1).max(150),
     password: z.string().min(1).max(128),
+    // Native app: return tokens in the body instead of setting cookies.
+    client: z.literal("mobile").optional(),
   })
   .strict();
 
 export async function POST(request: Request) {
-  if (!requireSameOrigin(request)) {
+  const parsed = Body.safeParse(await request.json().catch(() => null));
+  // A native-app login sets no cookies, so a missing Origin cannot be a CSRF vector.
+  const nativeLogin =
+    parsed.success &&
+    parsed.data.client === "mobile" &&
+    process.env.MOBILE_BEARER_AUTH === "1" &&
+    !request.headers.has("origin");
+  if (!nativeLogin && !requireSameOrigin(request)) {
     return jsonError("ORIGIN_MISMATCH", 403, "Origin not allowed.");
   }
-
-  const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return jsonError("INVALID_BODY", 400, INVALID_LOGIN_MESSAGE);
   }
@@ -93,7 +100,8 @@ export async function POST(request: Request) {
     return jsonError("INVALID_LOGIN", 400, INVALID_LOGIN_MESSAGE);
   }
 
-  const supabase = await createSupabaseServerClient();
+  const mobile = parsed.data.client === "mobile" && process.env.MOBILE_BEARER_AUTH === "1";
+  const supabase = mobile ? createSupabaseTokenClient() : await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password: parsed.data.password,
@@ -116,5 +124,12 @@ export async function POST(request: Request) {
     authenticated: true,
     username: user.username,
     password_change_required: user.must_change_password,
+    ...(mobile && data.session
+      ? {
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+          expires_at: data.session.expires_at,
+        }
+      : {}),
   });
 }

@@ -1,0 +1,26 @@
+# Recipient adds evidence through the photo-library path (simulators have no camera).
+# Needs a FUNDED award before its claim deadline and at least one photo in the device library.
+# Run: maestro test -e USERNAME=demo-recipient-01 -e PASSWORD=<seed password> .maestro/camera-upload.yaml
+appId: com.fundora.app
+---
+- runFlow: sign-in.yaml
+- tapOn:
+    text: "Funded"
+    index: 0
+- tapOn: "Add evidence"
+- tapOn: "Choose photos"
+- tapOn:
+    point: "50%,30%"
+- tapOn:
+    text: "Add|Done|Select"
+    optional: true
+- assertVisible: "photo-1.jpg"
+- tapOn: "What does this evidence show?"
+- inputText: "Maestro synthetic evidence"
+- tapOn: "Source record for the verifier"
+- inputText: "Synthetic site log page 1"
+- hideKeyboard
+- tapOn: "Upload evidence"
+- extendedWaitUntil:
+    visible: "Revision"
+    timeout: 30000

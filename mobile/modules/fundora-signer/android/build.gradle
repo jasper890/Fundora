@@ -1,0 +1,39 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.fundora'
+version = '0.1.0'
+
+android {
+  namespace "expo.modules.fundorasigner"
+  defaultConfig {
+    versionCode 1
+    versionName '0.1.0'
+  }
+}
+
+// Builds ../rust into src/main/jniLibs/<abi>/libfundora_signer.so with cargo-ndk before every Android build.
+// Needs Rust (rustup), cargo-ndk and the Android targets; see modules/fundora-signer/README.md.
+def rustDir = file("../rust")
+def jniLibsDir = file("src/main/jniLibs")
+def cargoHome = new File(System.getProperty("user.home"), ".cargo/bin")
+def cargo = new File(cargoHome, System.getProperty("os.name").toLowerCase().contains("windows") ? "cargo.exe" : "cargo")
+
+def buildRust = tasks.register("buildRustSigner", Exec) {
+  workingDir rustDir
+  inputs.dir(file("../rust/src"))
+  inputs.file(file("../rust/Cargo.toml"))
+  inputs.file(file("../rust/Cargo.lock"))
+  outputs.dir(jniLibsDir)
+  doFirst {
+    environment "ANDROID_NDK_HOME", android.ndkDirectory.absolutePath
+    environment "PATH", cargoHome.absolutePath + File.pathSeparator + System.getenv("PATH")
+  }
+  commandLine cargo.exists() ? cargo.absolutePath : "cargo",
+    "ndk", "-t", "arm64-v8a", "-t", "x86_64", "-o", jniLibsDir.absolutePath,
+    "build", "--release", "--locked"
+}
+
+tasks.named("preBuild") { dependsOn buildRust }

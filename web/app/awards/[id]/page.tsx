@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { EvidenceHistory } from "@/components/EvidenceHistory";
+import { ReviewNotes } from "@/components/ReviewNotes";
 import { Notice } from "@/components/Notice";
 import { PageHeading } from "@/components/PageHeading";
 import { SmokeContext } from "@/components/SmokeContext";
@@ -9,7 +10,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { Tracker } from "@/components/Tracker";
 import { WalletPanel } from "@/components/WalletPanel";
 import { loadReplacementVerifierOptions } from "@/lib/awards/program";
-import { loadEvidenceHistoryForUser } from "@/lib/awards/queries";
+import { loadEvidenceHistoryForUser, loadReviewNotesForUser } from "@/lib/awards/queries";
 import { sql } from "@/lib/db";
 import { isAwardVisible } from "@/lib/permissions";
 import {
@@ -254,6 +255,7 @@ export default async function AwardPage({
       )
     : [];
   const evidenceHistory = await loadEvidenceHistoryForUser(award.id, user);
+  const reviewNotes = await loadReviewNotesForUser(award.id, user);
   const recentOperations = await loadRecentOperations(award.id).catch(() => []);
   const hasEvidenceToSubmit =
     award.latest_evidence_revision != null &&
@@ -435,6 +437,12 @@ export default async function AwardPage({
       <section className="award-section">
         <h2>Evidence history</h2>
         <EvidenceHistory versions={evidenceHistory} />
+      </section>
+
+      <section className="award-section">
+        <h2>Change requests and disputes</h2>
+        <p className="lead">Visible only to this award&apos;s sponsor, verifier and recipient. They do not change the award on-chain.</p>
+        <ReviewNotes notes={reviewNotes} />
       </section>
     </AppShell>
   );

@@ -1,7 +1,7 @@
 import { sql } from "@/lib/db";
 import { jsonError, jsonOk, requireSameOrigin } from "@/lib/http";
 import { loadAppUserByAuthId } from "@/lib/awards/queries";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getRequestAuthUser } from "@/lib/supabase/server";
 
 export async function POST(
   request: Request,
@@ -11,10 +11,7 @@ export async function POST(
   const { id } = await context.params;
   await request.json().catch(() => ({}));
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestAuthUser(request);
   if (!user) return jsonError("UNAUTHENTICATED", 401);
   const appUser = await loadAppUserByAuthId(user.id);
   if (!appUser) return jsonError("UNAUTHENTICATED", 401);

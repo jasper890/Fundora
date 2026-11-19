@@ -31,7 +31,7 @@ const mocks = vi.hoisted(() => {
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/db", () => ({ sql: () => mocks.db }));
 vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient: async () => ({ auth: { getUser: mocks.getUser } }),
+  getRequestAuthUser: async () => (await mocks.getUser()).data.user,
 }));
 vi.mock("@/lib/awards/queries", () => ({ loadAppUserByAuthId: mocks.actor }));
 vi.mock("@/lib/chain/gateway", () => ({

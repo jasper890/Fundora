@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { clientIp, requireSameOrigin } from "@/lib/http";
+import { bearerToken, clientIp, requireSameOrigin } from "@/lib/http";
 
 afterEach(() => {
   delete process.env.VERCEL;
@@ -76,5 +76,52 @@ describe("client IP selection", () => {
       },
     });
     expect(clientIp(request)).toBe("203.0.113.9");
+  });
+});
+
+describe("mobile bearer requests", () => {
+  afterEach(() => {
+    delete process.env.MOBILE_BEARER_AUTH;
+  });
+
+  const bearerPost = (headers: Record<string, string> = {}) =>
+    new Request("https://proofpay.test/api", {
+      method: "POST",
+      headers: { Authorization: "Bearer jwt-value", ...headers },
+    });
+
+  it("accepts a no-Origin write that carries only a bearer token when enabled", () => {
+    process.env.MOBILE_BEARER_AUTH = "1";
+    expect(bearerToken(bearerPost())).toBe("jwt-value");
+    expect(requireSameOrigin(bearerPost())).toBe(true);
+  });
+
+  it("keeps rejecting no-Origin writes when the kill switch is off", () => {
+    expect(bearerToken(bearerPost())).toBeNull();
+    expect(requireSameOrigin(bearerPost())).toBe(false);
+  });
+
+  it("never relaxes the check for requests that also carry cookies", () => {
+    process.env.MOBILE_BEARER_AUTH = "1";
+    const mixed = bearerPost({ Cookie: "sb-access-token=abc" });
+    expect(bearerToken(mixed)).toBeNull();
+    expect(requireSameOrigin(mixed)).toBe(false);
+  });
+
+  it("ignores malformed authorization headers", () => {
+    process.env.MOBILE_BEARER_AUTH = "1";
+    for (const value of ["Basic abc", "Bearer", "Bearer  ", "bearer"]) {
+      const request = new Request("https://proofpay.test/api", {
+        method: "POST",
+        headers: { Authorization: value },
+      });
+      expect(bearerToken(request)).toBeNull();
+      expect(requireSameOrigin(request)).toBe(false);
+    }
+  });
+
+  it("still rejects a cross-site Origin even with a bearer token", () => {
+    process.env.MOBILE_BEARER_AUTH = "1";
+    expect(requireSameOrigin(bearerPost({ Origin: "https://attacker.test" }))).toBe(false);
   });
 });
