@@ -11,7 +11,6 @@ export function LoginForm({ door }: { door: string }) {
   const [pending, setPending] = useState(false);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    void door;
     event.preventDefault();
     setPending(true);
     setError(null);
@@ -19,6 +18,7 @@ export function LoginForm({ door }: { door: string }) {
     const body = {
       username: String(form.get("username") ?? ""),
       password: String(form.get("password") ?? ""),
+      door,
     };
     const response = await fetch("/api/v1/session/login", {
       method: "POST",
@@ -27,7 +27,7 @@ export function LoginForm({ door }: { door: string }) {
     });
     const data = (await response.json().catch(() => ({}))) as {
       error?: { message?: string } | string;
-      password_change_required?: boolean;
+      redirect_to?: string;
     };
     setPending(false);
     if (!response.ok) {
@@ -38,7 +38,7 @@ export function LoginForm({ door }: { door: string }) {
       setError(message);
       return;
     }
-    router.replace(data.password_change_required ? "/password-change" : "/programs");
+    router.replace(data.redirect_to ?? "/programs");
     router.refresh();
   }
 

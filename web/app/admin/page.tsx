@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { PageHeading } from "@/components/PageHeading";
+import { EmptyState } from "@/components/EmptyState";
 import { Notice } from "@/components/Notice";
 import { requireSessionUser } from "@/lib/session";
 import { sql } from "@/lib/db";
@@ -37,24 +38,42 @@ export default async function AdminHomePage() {
         lead="Provision members and manage project access. No payment authority and no automatic evidence access."
       />
       <AdminUserForm />
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.05rem" }}>Projects</h2>
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          {programs.map((p) => (
-            <li key={p.id} style={{ padding: "0.5rem 0" }}>
-              <Link href={`/admin/programs/${p.id}`}>{p.title}</Link>
-            </li>
-          ))}
-        </ul>
+      <section className="home-panel" aria-labelledby="admin-projects">
+        <span className="eyebrow">Access</span>
+        <h2 id="admin-projects">Projects</h2>
+        {programs.length === 0 ? (
+          <EmptyState
+            title="No projects yet"
+            body="Projects appear here once a sponsor creates one. Then add members to it."
+          />
+        ) : (
+          <ul className="home-register-list">
+            {programs.map((p) => (
+              <li key={p.id} className="home-award-row">
+                <div className="home-award-main">
+                  <div className="home-award-title">{p.title}</div>
+                </div>
+                <Link className="button secondary" href={`/admin/programs/${p.id}`}>
+                  Manage members
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
-      <section>
-        <h2 style={{ fontSize: "1.05rem" }}>Users</h2>
-        <ul style={{ listStyle: "none", padding: 0 }}>
+      <section className="home-panel" aria-labelledby="admin-users">
+        <span className="eyebrow">Accounts</span>
+        <h2 id="admin-users">Users</h2>
+        <ul className="home-register-list">
           {users.map((u) => (
-            <li key={u.username} style={{ padding: "0.35rem 0" }}>
-              {u.username}
-              {u.is_staff ? " · staff" : ""}
-              {!u.is_active ? " · inactive" : ""}
+            <li key={u.username} className="home-award-row">
+              <div className="home-award-main">
+                <div className="home-award-title">{u.username}</div>
+                <p className="home-award-meta">
+                  {u.is_staff ? "Administrator" : "Member"}
+                  {!u.is_active ? " · inactive" : ""}
+                </p>
+              </div>
             </li>
           ))}
         </ul>

@@ -23,7 +23,7 @@ export async function requireSessionUser(
   options: { allowMustChangePassword?: boolean } = {},
 ): Promise<AppUser> {
   const user = await getSessionUser({ allowMustChangePassword: true });
-  if (!user || !user.is_active) redirect("/");
+  if (!user || !user.is_active) redirect("/enter");
   if (user.must_change_password && !options.allowMustChangePassword) {
     redirect("/password-change");
   }

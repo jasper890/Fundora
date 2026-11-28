@@ -10,6 +10,8 @@ import {
 import { clientIp, jsonError, jsonOk, requireSameOrigin } from "@/lib/http";
 import { createSupabaseServerClient, createSupabaseTokenClient } from "@/lib/supabase/server";
 import { sql } from "@/lib/db";
+import { DOORS, doorAdmits, doorHome, wrongDoorMessage } from "@/lib/auth/doors";
+import type { Role } from "@/lib/types";
 
 const Body = z
   .object({
@@ -17,6 +19,8 @@ const Body = z
     password: z.string().min(1).max(128),
     // Native app: return tokens in the body instead of setting cookies.
     client: z.literal("mobile").optional(),
+    // Browser role door. Only selects the entry point; the server still checks the provisioned role.
+    door: z.enum(DOORS).optional(),
   })
   .strict();
 
@@ -81,12 +85,13 @@ export async function POST(request: Request) {
   }
 
   const profile = (await db`
-    select id, username, is_active, must_change_password from app_user
+    select id, username, is_staff, is_active, must_change_password from app_user
     where lower(username) = ${parsed.data.username.trim().toLowerCase()}
     limit 1
   `) as unknown as {
     id: string;
     username: string;
+    is_staff: boolean;
     is_active: boolean;
     must_change_password: boolean;
   }[];
@@ -110,6 +115,18 @@ export async function POST(request: Request) {
     return jsonError("INVALID_LOGIN", 400, INVALID_LOGIN_MESSAGE);
   }
 
+  // A first login only changes the password; the door is checked from then on. Not counted as a success.
+  const door = parsed.data.door;
+  if (door && !user.must_change_password) {
+    const roles = (await db`
+      select distinct role from program_member where user_id = ${user.id} and active = true
+    `) as unknown as { role: Role }[];
+    if (!doorAdmits(door, user, roles.map((row) => row.role))) {
+      await supabase.auth.signOut();
+      return jsonError("WRONG_DOOR", 403, wrongDoorMessage(door));
+    }
+  }
+
   const success = recordSuccess(reservation.attempt, new Date());
   await db`
     update login_attempt set
@@ -123,6 +140,7 @@ export async function POST(request: Request) {
     authenticated: true,
     username: user.username,
     password_change_required: user.must_change_password,
+    redirect_to: user.must_change_password ? "/password-change" : doorHome(door),
     ...(nativeLogin && data.session
       ? {
           access_token: data.session.access_token,

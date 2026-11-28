@@ -33,5 +33,7 @@ test("staff provisions an unprivileged account and first login requires a verifi
   await page.getByLabel("Username", { exact: true }).fill(username);
   await page.getByLabel("Password", { exact: true }).fill("Changed-password-456");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/programs/);
+  // Valid password, but no recipient membership yet: the door refuses and no session remains.
+  await expect(page.getByText(/not provisioned as a Recipient/)).toBeVisible();
+  expect((await (await page.request.get("/api/v1/session")).json()).authenticated).toBe(false);
 });

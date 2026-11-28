@@ -34,7 +34,7 @@ export async function loginAs(
   await page.getByLabel("Username").fill(username);
   await page.getByLabel("Password").fill(DEMO_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/programs(?:[/?#]|$)/, { timeout: 30_000 });
+  await expect(page).toHaveURL(door === "administrator" ? /\/admin(?:[/?#]|$)/ : /\/programs(?:[/?#]|$)/, { timeout: 30_000 });
 }
 
 export async function signOut(page: Page) {
